@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         UserRole @default(USER)
+  phone        String?
+  avatar       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  properties   Property[]
+  transactions Transaction[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  address     String
+  suburb      String
+  city        String   @default("Mutare")
+  province    String   @default("Manicaland")
+  latitude    Float
+  longitude   Float
+  price       Float
+  bedrooms    Int
+  bathrooms   Int
+  squareMeters Float?
+  propertyType PropertyType @default(HOUSE)
+  status      PropertyStatus @default(AVAILABLE)
+  amenities   String[]
+  images      String[]
+  hasWater    Boolean  @default(false)
+  hasElectricity Boolean @default(false)
+  hasRefuseCollection Boolean @default(false)
+  hasSecurity Boolean  @default(false)
+  yearBuilt   Int?
+  contactName  String
+  contactPhone String
+  contactEmail String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  views       Int      @default(0)
+
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+
+  transactions Transaction[]
+
+  @@index([suburb])
+  @@index([price])
+  @@index([bedrooms])
+  @@index([status])
+  @@index([userId])
+}
+
+model Transaction {
+  id             String   @id @default(cuid())
+  propertyId     String
+  property       Property @relation(fields: [propertyId], references: [id])
+  buyerId        String?
+  buyer          User?    @relation(fields: [buyerId], references: [id])
+  listedPrice    Float
+  soldPrice      Float?
+  predictedPrice Float?
+  status         TransactionStatus @default(LISTED)
+  listedAt       DateTime @default(now())
+  soldAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([propertyId])
+  @@index([buyerId])
+  @@index([status])
+}
+
+model PricePrediction {
+  id           String   @id @default(cuid())
+  suburb       String
+  bedrooms     Int
+  bathrooms    Int
+  squareMeters Float?
+  hasWater     Boolean
+  hasElectricity Boolean
+  hasSecurity  Boolean
+  predictedPrice Float
+  confidence   Float
+  createdAt    DateTime @default(now())
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum PropertyType {
+  HOUSE
+  FLAT
+  ROOM
+  TOWNHOUSE
+  COTTAGE
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  RENTED
+  PENDING
+}
+
+enum TransactionStatus {
+  LISTED
+  PENDING
+  SOLD
+  CANCELLED
+}

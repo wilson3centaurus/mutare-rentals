@@ -13,6 +13,13 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // Dynamic widths (progress bars) can't be expressed as Tailwind classes
+      "@next/next/no-css-in-js": "off",
+      "react/forbid-component-props": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0f;
+  --foreground: #e4e4e7;
+  --card: #111118;
+  --card-border: #1e1e2a;
+  --accent: #10b981;
+  --accent-glow: rgba(16, 185, 129, 0.15);
+  --muted: #71717a;
 }
 
 @theme inline {
@@ -12,15 +17,71 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0a0a0f; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+/* Glow effects */
+.glow-green { box-shadow: 0 0 20px rgba(16, 185, 129, 0.15), 0 0 60px rgba(16, 185, 129, 0.05); }
+.glow-green-sm { box-shadow: 0 0 10px rgba(16, 185, 129, 0.1); }
+.glow-pulse { animation: glowPulse 2s ease-in-out infinite; }
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(16, 185, 129, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3), 0 0 40px rgba(16, 185, 129, 0.1); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 8s linear infinite; }
+.animate-pulse-ring { animation: pulse-ring 1.5s ease-out infinite; }
+
+/* Neural network animation */
+@keyframes neuralPulse {
+  0% { stroke-dashoffset: 100; opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0.2; }
+}
+
+.neural-line {
+  stroke-dasharray: 100;
+  animation: neuralPulse 2s ease-in-out infinite;
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(17, 17, 24, 0.8);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(39, 39, 58, 0.5);
+}
+
+/* Grid pattern */
+.grid-pattern {
+  background-image: linear-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(16, 185, 129, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
