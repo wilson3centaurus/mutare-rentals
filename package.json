@@ -14,7 +14,6 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.2",
     "@prisma/client": "^6.19.2",
     "@radix-ui/react-tooltip": "^1.2.8",
     "bcryptjs": "^3.0.3",
