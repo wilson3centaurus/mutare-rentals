@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MapPin, TrendingUp, PlusCircle, BarChart2, Menu, X, Brain, Sparkles, LogIn, UserCircle, LogOut, Shield } from "lucide-react";
+import { Home, MapPin, TrendingUp, PlusCircle, BarChart2, Menu, X, Brain, Sparkles, LogIn, UserCircle, LogOut, Shield, Bell, GitBranch } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,9 +12,10 @@ const navLinks = [
   { href: "/", label: "Home", icon: Home },
   { href: "/properties", label: "Listings", icon: MapPin },
   { href: "/map", label: "Map View", icon: MapPin },
-  { href: "/predict", label: "AI Predictor", icon: TrendingUp },
+  { href: "/predict", label: "Price Calculator", icon: TrendingUp },
+  { href: "/algorithms", label: "Algorithms", icon: GitBranch },
+  { href: "/requisitions", label: "Requisitions", icon: Bell },
   { href: "/list-property", label: "List Property", icon: PlusCircle },
-  { href: "/dashboard", label: "Dashboard", icon: BarChart2 },
 ];
 
 export default function Navbar() {
@@ -91,27 +92,48 @@ export default function Navbar() {
               );
             })}
 
-            {/* Admin link */}
+            {/* Admin-only links */}
             {isAdmin && (
-              <Link
-                href="/admin"
-                className={cn(
-                  "relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5",
-                  pathname === "/admin"
-                    ? "text-amber-400"
-                    : "text-amber-500/70 hover:text-amber-400 hover:bg-zinc-800/50"
-                )}
-              >
-                <Shield className="w-3.5 h-3.5" />
-                Admin
-                {pathname === "/admin" && (
-                  <motion.div
-                    layoutId="navbar-active"
-                    className="absolute inset-0 bg-amber-500/10 border border-amber-500/20 rounded-lg -z-10"
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  />
-                )}
-              </Link>
+              <>
+                <Link
+                  href="/dashboard"
+                  className={cn(
+                    "relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5",
+                    pathname === "/dashboard"
+                      ? "text-amber-400"
+                      : "text-amber-500/70 hover:text-amber-400 hover:bg-zinc-800/50"
+                  )}
+                >
+                  <BarChart2 className="w-3.5 h-3.5" />
+                  Dashboard
+                  {pathname === "/dashboard" && (
+                    <motion.div
+                      layoutId="navbar-active"
+                      className="absolute inset-0 bg-amber-500/10 border border-amber-500/20 rounded-lg -z-10"
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                </Link>
+                <Link
+                  href="/admin"
+                  className={cn(
+                    "relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5",
+                    pathname === "/admin"
+                      ? "text-amber-400"
+                      : "text-amber-500/70 hover:text-amber-400 hover:bg-zinc-800/50"
+                  )}
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  Admin
+                  {pathname === "/admin" && (
+                    <motion.div
+                      layoutId="navbar-active"
+                      className="absolute inset-0 bg-amber-500/10 border border-amber-500/20 rounded-lg -z-10"
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                </Link>
+              </>
             )}
 
             {/* Auth section */}
@@ -219,16 +241,28 @@ export default function Navbar() {
                 </Link>
               ))}
               {isAdmin && (
-                <Link href="/admin" onClick={() => setMenuOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                    pathname === "/admin"
-                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                      : "text-amber-500/70 hover:text-amber-400 hover:bg-zinc-800/50"
-                  )}
-                >
-                  <Shield className="w-4 h-4" /> Admin Panel
-                </Link>
+                <>
+                  <Link href="/dashboard" onClick={() => setMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                      pathname === "/dashboard"
+                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                        : "text-amber-500/70 hover:text-amber-400 hover:bg-zinc-800/50"
+                    )}
+                  >
+                    <BarChart2 className="w-4 h-4" /> Dashboard
+                  </Link>
+                  <Link href="/admin" onClick={() => setMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                      pathname === "/admin"
+                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                        : "text-amber-500/70 hover:text-amber-400 hover:bg-zinc-800/50"
+                    )}
+                  >
+                    <Shield className="w-4 h-4" /> Admin Panel
+                  </Link>
+                </>
               )}
               <div className="border-t border-zinc-800/50 pt-2 mt-2">
                 {session ? (

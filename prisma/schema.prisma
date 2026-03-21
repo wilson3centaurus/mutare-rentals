@@ -21,6 +21,7 @@ model User {
 
   properties   Property[]
   transactions Transaction[]
+  requisitions Requisition[]
 
   @@index([email])
   @@index([role])
@@ -41,17 +42,39 @@ model Property {
   bathrooms   Int
   squareMeters Float?
   propertyType PropertyType @default(HOUSE)
+  listingType  ListingType  @default(WHOLE_HOUSE)
   status      PropertyStatus @default(AVAILABLE)
   amenities   String[]
   images      String[]
-  hasWater    Boolean  @default(false)
-  hasElectricity Boolean @default(false)
-  hasRefuseCollection Boolean @default(false)
-  hasSecurity Boolean  @default(false)
+
+  // Construction & Condition
+  houseConstruction HouseConstruction @default(BRICK)
+  roofType          RoofType          @default(IRON_SHEETS)
+  windowCondition   Condition         @default(GOOD)
+  wallCondition     Condition         @default(GOOD)
+  bathroomType      BathroomType      @default(SHOWER_ONLY)
+
+  // Utilities
+  hasWater            Boolean  @default(false)
+  hasElectricity      Boolean  @default(false)
+  hasRefuseCollection Boolean  @default(false)
+  hasSecurity         Boolean  @default(false)
+  hasWifi             Boolean  @default(false)
+  hasBorehole         Boolean  @default(false)
+  hasDriveway         Boolean  @default(false)
+  hasPool             Boolean  @default(false)
+  hasGenerator        Boolean  @default(false)
+  hasSolarPower       Boolean  @default(false)
+
   yearBuilt   Int?
+  algorithm   PricingAlgorithm @default(HEDONIC)
+
+  // Contact
   contactName  String
   contactPhone String
   contactEmail String?
+  contactRole  ContactRole @default(LANDLORD)
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   views       Int      @default(0)
@@ -66,6 +89,8 @@ model Property {
   @@index([bedrooms])
   @@index([status])
   @@index([userId])
+  @@index([propertyType])
+  @@index([listingType])
 }
 
 model Transaction {
@@ -96,9 +121,35 @@ model PricePrediction {
   hasWater     Boolean
   hasElectricity Boolean
   hasSecurity  Boolean
+  algorithm    PricingAlgorithm @default(HEDONIC)
   predictedPrice Float
   confidence   Float
   createdAt    DateTime @default(now())
+}
+
+model Requisition {
+  id             String            @id @default(cuid())
+  userId         String?
+  user           User?             @relation(fields: [userId], references: [id])
+  suburb         String?
+  propertyType   PropertyType?
+  listingType    ListingType?
+  minBedrooms    Int?
+  maxBedrooms    Int?
+  maxBudget      Float?
+  hasWater       Boolean?
+  hasElectricity Boolean?
+  hasSecurity    Boolean?
+  hasWifi        Boolean?
+  notes          String?
+  status         RequisitionStatus @default(OPEN)
+  estimatedMin   Float?
+  estimatedMax   Float?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
 
 enum UserRole {
@@ -114,6 +165,54 @@ enum PropertyType {
   COTTAGE
 }
 
+enum ListingType {
+  WHOLE_HOUSE
+  ROOM
+}
+
+enum HouseConstruction {
+  BRICK
+  WOOD
+  METAL
+  MIXED
+  STONE
+}
+
+enum RoofType {
+  TILES
+  ASBESTOS
+  IRON_SHEETS
+  THATCH
+  CONCRETE
+}
+
+enum Condition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}
+
+enum BathroomType {
+  SHOWER_ONLY
+  TUB_ONLY
+  SHOWER_AND_TUB
+  NONE
+}
+
+enum ContactRole {
+  LANDLORD
+  ESTATE_AGENT
+  PROPERTY_MANAGER
+  CARETAKER
+}
+
+enum PricingAlgorithm {
+  HEDONIC
+  COMPARABLE_SALES
+  COST_APPROACH
+}
+
 enum PropertyStatus {
   AVAILABLE
   RENTED
@@ -125,4 +224,10 @@ enum TransactionStatus {
   PENDING
   SOLD
   CANCELLED
+}
+
+enum RequisitionStatus {
+  OPEN
+  MATCHED
+  CLOSED
 }

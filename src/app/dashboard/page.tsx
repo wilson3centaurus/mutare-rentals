@@ -2,11 +2,18 @@ import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
 import { Home, MapPin, TrendingUp, BarChart2, Activity } from "lucide-react";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function DashboardPage() {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "ADMIN") {
+    redirect("/properties");
+  }
   const [
     totalProperties,
     availableProperties,
@@ -134,16 +141,24 @@ export default async function DashboardPage() {
       <div className="mt-6 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl p-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <p className="text-emerald-400/80 text-sm">AI Predictions Run</p>
+            <p className="text-emerald-400/80 text-sm">Price Calculations Run</p>
             <p className="text-4xl font-bold text-zinc-100 mt-1">{totalPredictions.toLocaleString()}</p>
-            <p className="text-emerald-400/60 text-sm mt-1">Price lookups using the AI model</p>
+            <p className="text-emerald-400/60 text-sm mt-1">Algorithmic price estimates generated</p>
           </div>
-          <Link
-            href="/predict"
-            className="bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors shadow-lg shadow-emerald-500/20"
-          >
-            Try the predictor →
-          </Link>
+          <div className="flex flex-col gap-2">
+            <Link
+              href="/predict"
+              className="bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors shadow-lg shadow-emerald-500/20 text-center"
+            >
+              Try the Price Calculator →
+            </Link>
+            <Link
+              href="/algorithms"
+              className="bg-zinc-800/60 hover:bg-zinc-700/60 border border-zinc-700/50 text-zinc-300 font-medium px-5 py-2.5 rounded-xl text-sm transition-colors text-center"
+            >
+              Algorithm Docs →
+            </Link>
+          </div>
         </div>
       </div>
     </div>
