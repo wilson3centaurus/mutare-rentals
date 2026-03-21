@@ -129,22 +129,7 @@ export default function LoginPage() {
           </p>
         </form>
 
-        {/* Demo credentials */}
-        <div className="mt-4 bg-zinc-900/40 border border-zinc-800/40 rounded-xl p-4">
-          <p className="text-xs font-medium text-zinc-500 mb-2">Demo Credentials</p>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <p className="text-zinc-600">Admin:</p>
-              <p className="text-zinc-400 font-mono">admin@mutare.ac.zw</p>
-              <p className="text-zinc-400 font-mono">admin123</p>
-            </div>
-            <div>
-              <p className="text-zinc-600">User:</p>
-              <p className="text-zinc-400 font-mono">user@mutare.ac.zw</p>
-              <p className="text-zinc-400 font-mono">user123</p>
-            </div>
-          </div>
-        </div>
+        
       </motion.div>
     </div>
   );
