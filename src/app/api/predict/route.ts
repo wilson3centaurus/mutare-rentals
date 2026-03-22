@@ -33,8 +33,8 @@ export async function POST(request: Request) {
       algorithm,
     });
 
-    // Persist prediction log
-    await prisma.pricePrediction.create({
+    // Persist prediction log (best-effort — don't fail the response if DB is unreachable)
+    prisma.pricePrediction.create({
       data: {
         suburb: body.suburb,
         bedrooms: parseInt(body.bedrooms),
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         predictedPrice: result.predictedPrice,
         confidence: result.confidence,
       },
-    });
+    }).catch((e: unknown) => console.warn("pricePrediction log skipped:", (e as Error).message));
 
     return NextResponse.json(result);
   } catch (error) {

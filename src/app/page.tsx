@@ -48,17 +48,28 @@ function NeuralNetBG() {
 
 /* ── Floating particles ── */
 function Particles() {
+  // Use stable seeded values to avoid SSR/client hydration mismatch
+  const particles = Array.from({ length: 20 }, (_, i) => {
+    // Deterministic pseudo-random based on index
+    const seed = (i * 2654435761) >>> 0;
+    const left = ((seed % 97) + (seed % 13) * 0.37).toFixed(4);
+    const top = (((seed >> 8) % 93) + ((seed >> 4) % 17) * 0.41).toFixed(4);
+    const dur = (6 + (seed % 8000) / 1000).toFixed(2);
+    const delay = ((seed % 5000) / 1000).toFixed(2);
+    return { left, top, dur, delay };
+  });
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: 20 }).map((_, i) => (
+      {particles.map((p, i) => (
         <div
           key={i}
           className="absolute w-1 h-1 rounded-full bg-emerald-400/20"
           style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animation: `float ${6 + Math.random() * 8}s ease-in-out infinite`,
-            animationDelay: `${Math.random() * 5}s`,
+            left: `${p.left}%`,
+            top: `${p.top}%`,
+            animation: `float ${p.dur}s ease-in-out infinite`,
+            animationDelay: `${p.delay}s`,
           }}
         />
       ))}

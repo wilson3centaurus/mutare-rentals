@@ -16,13 +16,19 @@ interface PredictionFactor {
   positive: boolean;
 }
 
+interface PredictionStep {
+  step: string;
+  value: number;
+  note: string;
+}
+
 interface PredictionResult {
   predictedPrice: number;
   minPrice: number;
   maxPrice: number;
   confidence: number;
   algorithm: string;
-  steps: string[];
+  steps: PredictionStep[];
   factors: PredictionFactor[];
 }
 
@@ -438,7 +444,7 @@ function PredictPageInner() {
                   <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-4">
                     <p className="text-sm font-semibold text-zinc-200 mb-3">Calculation Steps</p>
                     <div className="space-y-1.5">
-                      {result.steps.map((step, i) => (
+                      {result.steps.map((s, i) => (
                         <motion.div
                           key={i}
                           initial={{ opacity: 0, x: -8 }}
@@ -449,7 +455,15 @@ function PredictPageInner() {
                           <span className={`font-mono text-[10px] w-5 text-right flex-shrink-0 mt-0.5 ${c.text} opacity-60`}>
                             {i + 1}.
                           </span>
-                          <span className="text-zinc-400 leading-relaxed font-mono">{step}</span>
+                          <span className="text-zinc-400 leading-relaxed font-mono flex-1">
+                            {s.step}
+                            {s.value !== 0 && (
+                              <span className={`ml-1.5 ${s.value >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                {s.value >= 0 ? "+" : ""}{formatCurrency(s.value)}
+                              </span>
+                            )}
+                          </span>
+                          {s.note && <span className="text-zinc-600 text-[10px] flex-shrink-0 italic">{s.note}</span>}
                         </motion.div>
                       ))}
                     </div>
