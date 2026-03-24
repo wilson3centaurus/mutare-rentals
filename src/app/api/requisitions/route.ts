@@ -79,6 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ requisition, estimatedMin, estimatedMax }, { status: 201 });
   } catch (error) {
     console.error("POST /api/requisitions error:", error);
-    return NextResponse.json({ error: "Failed to submit requisition" }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: "Failed to submit requisition", detail: message }, { status: 500 });
   }
 }

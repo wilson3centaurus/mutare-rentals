@@ -149,8 +149,8 @@ export default function ListPropertyPage() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        const detail = errData?.detail ? ` (${errData.detail})` : "";
-        throw new Error(`Server error ${res.status}${detail}`);
+        const detail = errData?.detail ?? errData?.error ?? `HTTP ${res.status}`;
+        throw new Error(detail);
       }
       setSuccess(true);
       setTimeout(() => router.push("/properties"), 2500);

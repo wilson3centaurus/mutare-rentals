@@ -149,9 +149,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ property, prediction }, { status: 201 });
   } catch (error) {
     console.error("POST /api/properties error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Failed to create property", detail: process.env.NODE_ENV === "development" ? message : undefined },
+      { error: "Failed to create property", detail: message },
       { status: 500 }
     );
   }

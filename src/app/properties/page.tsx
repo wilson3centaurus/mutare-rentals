@@ -65,8 +65,12 @@ function PropertiesPageInner() {
     try {
       const res = await fetch(`/api/properties?${params.toString()}`);
       const data = await res.json();
+      if (!res.ok) throw new Error(data.detail ?? data.error ?? `HTTP ${res.status}`);
       setProperties(data.properties ?? []);
-    } catch { setProperties([]); }
+    } catch (e) {
+      console.error("fetchProperties error:", e);
+      setProperties([]);
+    }
     finally { setLoading(false); }
   }, [filters]);
 
