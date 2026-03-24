@@ -50,7 +50,7 @@ export async function GET(request: Request) {
   }
 }
 
-async function createPropertyWithRetry(data: Parameters<typeof prisma.property.create>[0], retries = 3): ReturnType<typeof prisma.property.create> {
+async function createPropertyWithRetry(data: Parameters<typeof prisma.property.create>[0], retries = 3): Promise<Awaited<ReturnType<typeof prisma.property.create>>> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       return await prisma.property.create(data);
