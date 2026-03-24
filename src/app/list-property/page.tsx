@@ -147,11 +147,16 @@ export default function ListPropertyPage() {
         }),
       });
 
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const detail = errData?.detail ? ` (${errData.detail})` : "";
+        throw new Error(`Server error ${res.status}${detail}`);
+      }
       setSuccess(true);
       setTimeout(() => router.push("/properties"), 2500);
-    } catch {
-      setError("Failed to list property. Please try again.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setError(`Failed to list property: ${msg}`);
     } finally {
       setLoading(false);
     }

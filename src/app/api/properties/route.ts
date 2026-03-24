@@ -50,6 +50,29 @@ export async function GET(request: Request) {
   }
 }
 
+async function createPropertyWithRetry(data: Parameters<typeof prisma.property.create>[0], retries = 3): ReturnType<typeof prisma.property.create> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await prisma.property.create(data);
+    } catch (err: unknown) {
+      const isConnectionError =
+        err instanceof Error &&
+        (err.message.includes("Can't reach database") ||
+          err.message.includes("Connection pool timeout") ||
+          err.message.includes("connection") ||
+          err.message.includes("ECONNREFUSED") ||
+          err.message.includes("P1001") ||
+          err.message.includes("P2024"));
+      if (isConnectionError && attempt < retries) {
+        await new Promise((r) => setTimeout(r, attempt * 500)); // 500ms, 1000ms back-off
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Unreachable");
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -82,7 +105,7 @@ export async function POST(request: Request) {
       algorithm,
     });
 
-    const property = await prisma.property.create({
+    const property = await createPropertyWithRetry({
       data: {
         title: body.title,
         description: body.description,
@@ -126,6 +149,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ property, prediction }, { status: 201 });
   } catch (error) {
     console.error("POST /api/properties error:", error);
-    return NextResponse.json({ error: "Failed to create property" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { error: "Failed to create property", detail: process.env.NODE_ENV === "development" ? message : undefined },
+      { status: 500 }
+    );
   }
 }
