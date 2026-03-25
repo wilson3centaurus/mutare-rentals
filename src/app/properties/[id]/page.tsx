@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 import { MapPin, Bed, Bath, Zap, Droplets, Shield, Trash2, Phone, Mail, ArrowLeft, Brain, Eye } from "lucide-react";
@@ -11,7 +11,11 @@ export default async function PropertyDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const property = await prisma.property.findUnique({ where: { id } });
+  const { data: property } = await supabase
+    .from("Property")
+    .select("*")
+    .eq("id", id)
+    .single();
   if (!property) notFound();
 
   // Build auto-fill predict URL with all property details

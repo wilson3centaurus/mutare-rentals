@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 export async function GET(
   request: Request,
@@ -7,19 +7,21 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const property = await prisma.property.findUnique({
-      where: { id },
-    });
+    const { data: property, error } = await supabase
+      .from("Property")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-    if (!property) {
+    if (error || !property) {
       return NextResponse.json({ error: "Property not found" }, { status: 404 });
     }
 
     // Increment view count
-    await prisma.property.update({
-      where: { id },
-      data: { views: { increment: 1 } },
-    });
+    await supabase
+      .from("Property")
+      .update({ views: (property.views ?? 0) + 1, updatedAt: new Date().toISOString() })
+      .eq("id", id);
 
     return NextResponse.json({ property });
   } catch (error) {
@@ -36,11 +38,14 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const property = await prisma.property.update({
-      where: { id },
-      data: body,
-    });
+    const { data: property, error } = await supabase
+      .from("Property")
+      .update({ ...body, updatedAt: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
 
+    if (error) throw error;
     return NextResponse.json({ property });
   } catch (error) {
     console.error("PUT /api/properties/[id] error:", error);
@@ -54,11 +59,12 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-
-    await prisma.property.delete({ where: { id } });
+    const { error } = await supabase.from("Property").delete().eq("id", id);
+    if (error) throw error;
     return NextResponse.json({ message: "Property deleted" });
   } catch (error) {
     console.error("DELETE /api/properties/[id] error:", error);
     return NextResponse.json({ error: "Failed to delete property" }, { status: 500 });
   }
 }
+

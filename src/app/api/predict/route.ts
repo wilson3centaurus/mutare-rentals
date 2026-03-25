@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { predictPrice, PricingAlgorithm } from "@/lib/prediction";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
+import { randomUUID } from "crypto";
 
 export async function POST(request: Request) {
   try {
@@ -34,20 +35,20 @@ export async function POST(request: Request) {
     });
 
     // Persist prediction log (best-effort — don't fail the response if DB is unreachable)
-    prisma.pricePrediction.create({
-      data: {
-        suburb: body.suburb,
-        bedrooms: parseInt(body.bedrooms),
-        bathrooms: parseInt(body.bathrooms),
-        squareMeters: body.squareMeters ? parseFloat(body.squareMeters) : null,
-        hasWater: body.hasWater ?? false,
-        hasElectricity: body.hasElectricity ?? false,
-        hasSecurity: body.hasSecurity ?? false,
-        algorithm,
-        predictedPrice: result.predictedPrice,
-        confidence: result.confidence,
-      },
-    }).catch((e: unknown) => console.warn("pricePrediction log skipped:", (e as Error).message));
+    supabase.from("PricePrediction").insert({
+      id: randomUUID(),
+      suburb: body.suburb,
+      bedrooms: parseInt(body.bedrooms),
+      bathrooms: parseInt(body.bathrooms),
+      squareMeters: body.squareMeters ? parseFloat(body.squareMeters) : null,
+      hasWater: body.hasWater ?? false,
+      hasElectricity: body.hasElectricity ?? false,
+      hasSecurity: body.hasSecurity ?? false,
+      algorithm,
+      predictedPrice: result.predictedPrice,
+      confidence: result.confidence,
+      createdAt: new Date().toISOString(),
+    }).then(undefined, (e: unknown) => console.warn("pricePrediction log skipped:", e));
 
     return NextResponse.json(result);
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 
 export async function POST(request: Request) {
   try {
@@ -14,43 +15,40 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    const { data: existing } = await supabase
+      .from("User")
+      .select("id")
+      .eq("email", email)
+      .single();
 
-    if (existingUser) {
+    if (existing) {
       return NextResponse.json(
         { error: "An account with this email already exists" },
         { status: 409 }
       );
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
+    const now = new Date().toISOString();
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
+    const { data: user, error } = await supabase
+      .from("User")
+      .insert({
+        id: randomUUID(),
         name,
         email,
         password: hashedPassword,
         phone: phone || null,
         role: "USER",
-      },
-    });
+        createdAt: now,
+        updatedAt: now,
+      })
+      .select("id, name, email, role")
+      .single();
 
-    return NextResponse.json(
-      {
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-      },
-      { status: 201 }
-    );
+    if (error) throw error;
+
+    return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
     console.error("POST /api/auth/register error:", error);
     return NextResponse.json(

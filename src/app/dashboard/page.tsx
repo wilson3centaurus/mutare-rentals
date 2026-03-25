@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/utils";
 import { Home, MapPin, TrendingUp, BarChart2, Activity } from "lucide-react";
 import Link from "next/link";
@@ -15,33 +15,39 @@ export default async function DashboardPage() {
     redirect("/properties");
   }
   const [
-    totalProperties,
-    availableProperties,
-    rentedProperties,
-    avgPriceResult,
-    suburbCounts,
-    recentProperties,
-    totalPredictions,
+    { count: totalProperties },
+    { count: availableProperties },
+    { count: rentedProperties },
+    { count: totalPredictions },
+    { data: allProps },
+    { data: recentProperties },
   ] = await Promise.all([
-    prisma.property.count(),
-    prisma.property.count({ where: { status: "AVAILABLE" } }),
-    prisma.property.count({ where: { status: "RENTED" } }),
-    prisma.property.aggregate({ _avg: { price: true } }),
-    prisma.property.groupBy({
-      by: ["suburb"],
-      _count: { id: true },
-      _avg: { price: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 8,
-    }),
-    prisma.property.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 6,
-    }),
-    prisma.pricePrediction.count(),
+    supabase.from("Property").select("*", { count: "exact", head: true }),
+    supabase.from("Property").select("*", { count: "exact", head: true }).eq("status", "AVAILABLE"),
+    supabase.from("Property").select("*", { count: "exact", head: true }).eq("status", "RENTED"),
+    supabase.from("PricePrediction").select("*", { count: "exact", head: true }),
+    supabase.from("Property").select("suburb, price"),
+    supabase.from("Property").select("id, title, suburb, bedrooms, price, status").order("createdAt", { ascending: false }).limit(6),
   ]);
 
-  const avgPrice = avgPriceResult._avg.price ?? 0;
+  const props = allProps ?? [];
+  const avgPrice = props.length > 0
+    ? props.reduce((s: number, p: { price: number }) => s + p.price, 0) / props.length
+    : 0;
+
+  const suburbMap = new Map<string, { count: number; total: number }>();
+  for (const p of props) {
+    const e = suburbMap.get(p.suburb) ?? { count: 0, total: 0 };
+    e.count++; e.total += p.price; suburbMap.set(p.suburb, e);
+  }
+  const suburbCounts = [...suburbMap.entries()]
+    .map(([suburb, { count, total }]) => ({
+      suburb,
+      _count: { id: count },
+      _avg: { price: count > 0 ? total / count : 0 },
+    }))
+    .sort((a, b) => b._count.id - a._count.id)
+    .slice(0, 8);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -113,10 +119,10 @@ export default async function DashboardPage() {
             <Link href="/properties" className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors">View all →</Link>
           </div>
           <div className="space-y-1">
-            {recentProperties.length === 0 ? (
+            {(recentProperties ?? []).length === 0 ? (
               <p className="text-zinc-600 text-sm">No properties listed yet</p>
             ) : (
-              (recentProperties as Array<{ id: string; title: string; suburb: string; bedrooms: number; price: number; status: string }>).map((p) => (
+              ((recentProperties ?? []) as Array<{ id: string; title: string; suburb: string; bedrooms: number; price: number; status: string }>).map((p) => (
                 <Link key={p.id} href={`/properties/${p.id}`}>
                   <div className="flex items-center justify-between py-2.5 hover:bg-zinc-800/50 rounded-lg px-2 transition-colors">
                     <div>
@@ -142,7 +148,7 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <p className="text-emerald-400/80 text-sm">Price Calculations Run</p>
-            <p className="text-4xl font-bold text-zinc-100 mt-1">{totalPredictions.toLocaleString()}</p>
+            <p className="text-4xl font-bold text-zinc-100 mt-1">{(totalPredictions ?? 0).toLocaleString()}</p>
             <p className="text-emerald-400/60 text-sm mt-1">Algorithmic price estimates generated</p>
           </div>
           <div className="flex flex-col gap-2">

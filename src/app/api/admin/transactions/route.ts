@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { predictPrice } from "@/lib/prediction";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { randomUUID } from "crypto";
 
 export async function POST(request: Request) {
   try {
@@ -18,12 +19,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "propertyId and soldPrice required" }, { status: 400 });
     }
 
-    const property = await prisma.property.findUnique({ where: { id: propertyId } });
-    if (!property) {
+    const { data: property, error: propError } = await supabase
+      .from("Property")
+      .select("*")
+      .eq("id", propertyId)
+      .single();
+
+    if (propError || !property) {
       return NextResponse.json({ error: "Property not found" }, { status: 404 });
     }
 
-    // Get AI predicted price for this property
     const prediction = predictPrice({
       suburb: property.suburb,
       bedrooms: property.bedrooms,
@@ -37,24 +42,30 @@ export async function POST(request: Request) {
       yearBuilt: property.yearBuilt ?? undefined,
     });
 
-    // Create transaction
-    const transaction = await prisma.transaction.create({
-      data: {
+    const now = new Date().toISOString();
+    const { data: transaction, error: txError } = await supabase
+      .from("Transaction")
+      .insert({
+        id: randomUUID(),
         propertyId,
         buyerId: buyerId || null,
         listedPrice: property.price,
         soldPrice: parseFloat(soldPrice),
         predictedPrice: prediction.predictedPrice,
         status: "SOLD",
-        soldAt: new Date(),
-      },
-    });
+        listedAt: now,
+        soldAt: now,
+        createdAt: now,
+      })
+      .select()
+      .single();
 
-    // Update property status
-    await prisma.property.update({
-      where: { id: propertyId },
-      data: { status: "RENTED" },
-    });
+    if (txError) throw txError;
+
+    await supabase
+      .from("Property")
+      .update({ status: "RENTED", updatedAt: now })
+      .eq("id", propertyId);
 
     return NextResponse.json({ transaction }, { status: 201 });
   } catch (error) {

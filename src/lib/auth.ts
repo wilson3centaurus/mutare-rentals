@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
@@ -16,11 +16,13 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email and password are required");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        const { data: user, error } = await supabase
+          .from("User")
+          .select("id, name, email, password, role")
+          .eq("email", credentials.email)
+          .single();
 
-        if (!user) {
+        if (error || !user) {
           throw new Error("No account found with that email");
         }
 

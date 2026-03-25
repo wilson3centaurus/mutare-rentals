@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { predictPrice } from "@/lib/prediction";
-import { PropertyType, ListingType } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -12,22 +12,25 @@ export async function GET(request: Request) {
 
   try {
     if (all === "true" && session?.user?.role === "ADMIN") {
-      const requisitions = await prisma.requisition.findMany({
-        include: { user: { select: { name: true, email: true } } },
-        orderBy: { createdAt: "desc" },
-      });
-      return NextResponse.json({ requisitions });
+      const { data: requisitions, error } = await supabase
+        .from("Requisition")
+        .select("*, user:User!userId(name, email)")
+        .order("createdAt", { ascending: false });
+      if (error) throw error;
+      return NextResponse.json({ requisitions: requisitions ?? [] });
     }
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const requisitions = await prisma.requisition.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
-    });
-    return NextResponse.json({ requisitions });
+    const { data: requisitions, error } = await supabase
+      .from("Requisition")
+      .select("*")
+      .eq("userId", session.user.id)
+      .order("createdAt", { ascending: false });
+    if (error) throw error;
+    return NextResponse.json({ requisitions: requisitions ?? [] });
   } catch (error) {
     console.error("GET /api/requisitions error:", error);
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
@@ -57,12 +60,15 @@ export async function POST(request: Request) {
     const estimatedMin = Math.min(estLow.minPrice, estHigh.minPrice);
     const estimatedMax = Math.max(estLow.maxPrice, estHigh.maxPrice);
 
-    const requisition = await prisma.requisition.create({
-      data: {
+    const now = new Date().toISOString();
+    const { data: requisition, error } = await supabase
+      .from("Requisition")
+      .insert({
+        id: randomUUID(),
         userId: session?.user?.id ?? null,
         suburb: body.suburb ?? null,
-        propertyType: body.propertyType ? (body.propertyType as PropertyType) : null,
-        listingType: body.listingType ? (body.listingType as ListingType) : null,
+        propertyType: body.propertyType ?? null,
+        listingType: body.listingType ?? null,
         minBedrooms: body.minBedrooms ? parseInt(body.minBedrooms) : null,
         maxBedrooms: body.maxBedrooms ? parseInt(body.maxBedrooms) : null,
         maxBudget: body.maxBudget ? parseFloat(body.maxBudget) : null,
@@ -71,10 +77,16 @@ export async function POST(request: Request) {
         hasSecurity: body.hasSecurity ?? null,
         hasWifi: body.hasWifi ?? null,
         notes: body.notes ?? null,
+        status: "OPEN",
         estimatedMin,
         estimatedMax,
-      },
-    });
+        createdAt: now,
+        updatedAt: now,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
 
     return NextResponse.json({ requisition, estimatedMin, estimatedMax }, { status: 201 });
   } catch (error) {

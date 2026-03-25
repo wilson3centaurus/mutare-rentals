@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { PropertyType, PropertyStatus, ListingType } from "@prisma/client";
+import { supabase } from "@/lib/supabase";
 import { predictPrice, PricingAlgorithm } from "@/lib/prediction";
+import { randomUUID } from "crypto";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -20,64 +20,39 @@ export async function GET(request: Request) {
   const houseConstruction = searchParams.get("houseConstruction");
 
   try {
-    const properties = await prisma.property.findMany({
-      where: {
-        ...(suburb && { suburb }),
-        ...(userId && { userId }),
-        ...(propertyType && { propertyType: propertyType as PropertyType }),
-        ...(listingType && { listingType: listingType as ListingType }),
-        ...(status && { status: status as PropertyStatus }),
-        ...(minPrice || maxPrice ? {
-          price: {
-            ...(minPrice ? { gte: parseFloat(minPrice) } : {}),
-            ...(maxPrice ? { lte: parseFloat(maxPrice) } : {}),
-          },
-        } : {}),
-        ...(bedrooms ? { bedrooms: { gte: parseInt(bedrooms) } } : {}),
-        ...(hasWifi === "true" ? { hasWifi: true } : {}),
-        ...(hasPool === "true" ? { hasPool: true } : {}),
-        ...(hasBorehole === "true" ? { hasBorehole: true } : {}),
-        ...(houseConstruction ? { houseConstruction: houseConstruction as never } : {}),
-      },
-      include: { user: { select: { name: true, email: true } } },
-      orderBy: { createdAt: "desc" },
-    });
+    let query = supabase
+      .from("Property")
+      .select("*, user:User!userId(name, email)")
+      .order("createdAt", { ascending: false });
 
-    return NextResponse.json({ properties });
+    if (suburb) query = query.eq("suburb", suburb);
+    if (userId) query = query.eq("userId", userId);
+    if (propertyType) query = query.eq("propertyType", propertyType);
+    if (listingType) query = query.eq("listingType", listingType);
+    if (status) query = query.eq("status", status);
+    if (minPrice) query = query.gte("price", parseFloat(minPrice));
+    if (maxPrice) query = query.lte("price", parseFloat(maxPrice));
+    if (bedrooms) query = query.gte("bedrooms", parseInt(bedrooms));
+    if (hasWifi === "true") query = query.eq("hasWifi", true);
+    if (hasPool === "true") query = query.eq("hasPool", true);
+    if (hasBorehole === "true") query = query.eq("hasBorehole", true);
+    if (houseConstruction) query = query.eq("houseConstruction", houseConstruction);
+
+    const { data: properties, error } = await query;
+    if (error) throw error;
+
+    return NextResponse.json({ properties: properties ?? [] });
   } catch (error) {
     console.error("GET /api/properties error:", error);
-    return NextResponse.json({ error: "Failed to fetch properties" }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: "Failed to fetch properties", detail: message }, { status: 500 });
   }
-}
-
-async function createPropertyWithRetry(data: Parameters<typeof prisma.property.create>[0], retries = 3): Promise<Awaited<ReturnType<typeof prisma.property.create>>> {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      return await prisma.property.create(data);
-    } catch (err: unknown) {
-      const isConnectionError =
-        err instanceof Error &&
-        (err.message.includes("Can't reach database") ||
-          err.message.includes("Connection pool timeout") ||
-          err.message.includes("connection") ||
-          err.message.includes("ECONNREFUSED") ||
-          err.message.includes("P1001") ||
-          err.message.includes("P2024"));
-      if (isConnectionError && attempt < retries) {
-        await new Promise((r) => setTimeout(r, attempt * 500)); // 500ms, 1000ms back-off
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw new Error("Unreachable");
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Auto-predict price using chosen algorithm
     const algorithm: PricingAlgorithm = body.algorithm ?? "HEDONIC";
     const prediction = predictPrice({
       suburb: body.suburb,
@@ -105,28 +80,33 @@ export async function POST(request: Request) {
       algorithm,
     });
 
-    const property = await createPropertyWithRetry({
-      data: {
+    const now = new Date().toISOString();
+    const { data: property, error } = await supabase
+      .from("Property")
+      .insert({
+        id: randomUUID(),
         title: body.title,
-        description: body.description,
+        description: body.description ?? null,
         address: body.address,
         suburb: body.suburb,
+        city: "Mutare",
+        province: "Manicaland",
         latitude: parseFloat(body.latitude),
         longitude: parseFloat(body.longitude),
-        price: prediction.predictedPrice, // always algorithm-set
+        price: prediction.predictedPrice,
         bedrooms: parseInt(body.bedrooms),
         bathrooms: parseInt(body.bathrooms),
         squareMeters: body.squareMeters ? parseFloat(body.squareMeters) : null,
         propertyType: body.propertyType ?? "HOUSE",
         listingType: body.listingType ?? "WHOLE_HOUSE",
+        status: "AVAILABLE",
+        amenities: body.amenities ?? [],
+        images: body.images ?? [],
         houseConstruction: body.houseConstruction ?? "BRICK",
         roofType: body.roofType ?? "IRON_SHEETS",
         windowCondition: body.windowCondition ?? "GOOD",
         wallCondition: body.wallCondition ?? "GOOD",
         bathroomType: body.bathroomType ?? "SHOWER_ONLY",
-        algorithm,
-        amenities: body.amenities ?? [],
-        images: body.images ?? [],
         hasWater: body.hasWater ?? false,
         hasElectricity: body.hasElectricity ?? false,
         hasRefuseCollection: body.hasRefuseCollection ?? false,
@@ -138,13 +118,20 @@ export async function POST(request: Request) {
         hasGenerator: body.hasGenerator ?? false,
         hasSolarPower: body.hasSolarPower ?? false,
         yearBuilt: body.yearBuilt ? parseInt(body.yearBuilt) : null,
+        algorithm,
         contactName: body.contactName,
         contactPhone: body.contactPhone,
-        contactEmail: body.contactEmail,
+        contactEmail: body.contactEmail ?? null,
         contactRole: body.contactRole ?? "LANDLORD",
-        ...(body.userId && { userId: body.userId }),
-      },
-    });
+        userId: body.userId ?? null,
+        views: 0,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
 
     return NextResponse.json({ property, prediction }, { status: 201 });
   } catch (error) {
