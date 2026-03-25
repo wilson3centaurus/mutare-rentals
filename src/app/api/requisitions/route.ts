@@ -66,9 +66,9 @@ export async function POST(request: Request) {
       .insert({
         id: randomUUID(),
         userId: session?.user?.id ?? null,
-        suburb: body.suburb ?? null,
-        propertyType: body.propertyType ?? null,
-        listingType: body.listingType ?? null,
+        suburb: body.suburb || null,
+        propertyType: body.propertyType || null,
+        listingType: body.listingType || null,
         minBedrooms: body.minBedrooms ? parseInt(body.minBedrooms) : null,
         maxBedrooms: body.maxBedrooms ? parseInt(body.maxBedrooms) : null,
         maxBudget: body.maxBudget ? parseFloat(body.maxBudget) : null,
