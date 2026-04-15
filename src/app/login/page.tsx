@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Brain, LogIn, Loader2, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Brain, LogIn, Loader2, Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function LoginPage() {
@@ -12,15 +12,25 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const friendlyError = (raw: string) => {
+    if (raw.toLowerCase().includes("no account")) return "No account found with this email address.";
+    if (raw.toLowerCase().includes("invalid password") || raw.toLowerCase().includes("invalid")) return "Incorrect password. Please try again.";
+    if (raw.toLowerCase().includes("email and password")) return "Please enter both your email and password.";
+    return raw || "Something went wrong. Please try again.";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.email || !form.password) {
-      setError("Please fill in all fields");
+      setError("Please enter both your email and password.");
+      setSuccess("");
       return;
     }
     setError("");
+    setSuccess("");
     setLoading(true);
 
     const result = await signIn("credentials", {
@@ -30,11 +40,15 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      setError(result.error);
+      setError(friendlyError(result.error));
       setLoading(false);
     } else {
-      router.push("/properties");
-      router.refresh();
+      setSuccess("Signed in successfully! Redirecting…");
+      setLoading(false);
+      setTimeout(() => {
+        router.push("/properties");
+        router.refresh();
+      }, 5000);
     }
   };
 
@@ -43,6 +57,45 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
+      {/* ── Error modal ── */}
+      {error && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm bg-zinc-900 border border-red-500/40 rounded-2xl p-6 shadow-2xl text-center"
+          >
+            <div className="w-14 h-14 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-7 h-7 text-red-400" />
+            </div>
+            <h2 className="text-lg font-bold text-zinc-100 mb-1">Sign In Failed</h2>
+            <p className="text-red-300 text-sm mb-5">{error}</p>
+            <button
+              onClick={() => setError("")}
+              className="w-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 font-semibold py-2.5 rounded-xl transition-all text-sm"
+            >
+              Try Again
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── Success modal ── */}
+      {success && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm bg-zinc-900 border border-emerald-500/40 rounded-2xl p-6 shadow-2xl text-center"
+          >
+            <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+            </div>
+            <h2 className="text-lg font-bold text-zinc-100 mb-1">Welcome Back!</h2>
+            <p className="text-emerald-300 text-sm">{success}</p>
+          </motion.div>
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -99,11 +152,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {error && (
-            <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-              {error}
-            </p>
-          )}
+          {/* spacer kept so form layout doesn't shift */}
 
           <button
             type="submit"

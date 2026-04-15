@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Brain, UserPlus, Loader2, Eye, EyeOff, Mail, Lock, User, Phone } from "lucide-react";
+import { Brain, UserPlus, Loader2, Eye, EyeOff, Mail, Lock, User, Phone, AlertCircle, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function RegisterPage() {
@@ -12,23 +12,28 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "", phone: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.password) {
-      setError("Please fill in all required fields");
+      setError("Please fill in all required fields.");
+      setSuccess("");
       return;
     }
     if (form.password.length < 6) {
-      setError("Password must be at least 6 characters");
+      setError("Password must be at least 6 characters.");
+      setSuccess("");
       return;
     }
     if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match");
+      setError("Passwords do not match. Please check and try again.");
+      setSuccess("");
       return;
     }
     setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
@@ -46,7 +51,7 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Registration failed");
+        setError(data.error || "Registration failed. Please try again.");
         setLoading(false);
         return;
       }
@@ -59,12 +64,16 @@ export default function RegisterPage() {
       });
 
       if (signInResult?.error) {
-        setError("Account created! Please sign in manually.");
+        setSuccess("Account created! Redirecting to sign in…");
         setLoading(false);
-        router.push("/login");
+        setTimeout(() => router.push("/login"), 5000);
       } else {
-        router.push("/properties");
-        router.refresh();
+        setSuccess("Account created successfully! Redirecting…");
+        setLoading(false);
+        setTimeout(() => {
+          router.push("/properties");
+          router.refresh();
+        }, 5000);
       }
     } catch {
       setError("Something went wrong. Please try again.");
@@ -77,6 +86,45 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-8">
+      {/* ── Error modal ── */}
+      {error && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm bg-zinc-900 border border-red-500/40 rounded-2xl p-6 shadow-2xl text-center"
+          >
+            <div className="w-14 h-14 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-7 h-7 text-red-400" />
+            </div>
+            <h2 className="text-lg font-bold text-zinc-100 mb-1">Registration Failed</h2>
+            <p className="text-red-300 text-sm mb-5">{error}</p>
+            <button
+              onClick={() => setError("")}
+              className="w-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 font-semibold py-2.5 rounded-xl transition-all text-sm"
+            >
+              Try Again
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── Success modal ── */}
+      {success && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm bg-zinc-900 border border-emerald-500/40 rounded-2xl p-6 shadow-2xl text-center"
+          >
+            <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+            </div>
+            <h2 className="text-lg font-bold text-zinc-100 mb-1">You&apos;re all set!</h2>
+            <p className="text-emerald-300 text-sm">{success}</p>
+          </motion.div>
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -177,11 +225,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {error && (
-            <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-              {error}
-            </p>
-          )}
+          {/* spacer kept so form layout doesn't shift */}
 
           <button
             type="submit"
