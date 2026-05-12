@@ -9,7 +9,7 @@ import {
   Shield, Users, Home, TrendingUp, Clock, Mail,
   Activity, Eye, DollarSign, ArrowRight, Loader2, BarChart2,
   CheckCircle2, AlertTriangle, XCircle, GitBranch, Bell,
-  BookOpen,
+  BookOpen, Download, FileText, Target, BarChart3,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -48,6 +48,11 @@ interface AdminData {
     id: string; title: string; suburb: string; price: number;
     status: string; createdAt: string; bedrooms: number; views: number;
     algorithm: string | null;
+    propertyType?: string; bathrooms?: number; squareMeters?: number;
+    houseConstruction?: string; roofType?: string;
+    hasWater?: boolean; hasElectricity?: boolean; hasRefuseCollection?: boolean;
+    hasSecurity?: boolean; hasWifi?: boolean; hasBorehole?: boolean;
+    hasDriveway?: boolean; hasPool?: boolean; hasGenerator?: boolean; hasSolarPower?: boolean;
     user: { name: string; email: string } | null;
   }>;
   transactions: Array<{
@@ -64,7 +69,7 @@ interface AdminData {
   requisitions?: RequisitionItem[];
 }
 
-type Tab = "overview" | "users" | "listings" | "transactions" | "requisitions" | "algorithms";
+type Tab = "overview" | "users" | "listings" | "transactions" | "requisitions" | "algorithms" | "analytics";
 
 /* ── SVG Bar Chart ── */
 function BarChart({ data, color = "emerald" }: {
@@ -160,6 +165,33 @@ function DonutChart({ segments, size = 120 }: {
   );
 }
 
+/* ── Horizontal Bar Chart ── */
+function HorizontalBarChart({ data, maxOverride }: {
+  data: { label: string; value: number; color?: string }[];
+  maxOverride?: number;
+}) {
+  const dataMax = maxOverride ?? Math.max(...data.map((d) => d.value), 1);
+  return (
+    <div className="space-y-2.5">
+      {data.map((d) => {
+        const pct = Math.min(100, (d.value / dataMax) * 100);
+        return (
+          <div key={d.label} className="flex items-center gap-3">
+            <span className="text-xs text-zinc-400 w-32 flex-shrink-0 truncate">{d.label}</span>
+            <div className="flex-1 h-2 bg-zinc-800/60 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${pct}%`, background: d.color ?? "#10b981" }}
+              />
+            </div>
+            <span className="text-xs font-mono text-zinc-300 w-6 text-right flex-shrink-0">{d.value}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -202,6 +234,7 @@ export default function AdminPage() {
     { id: "transactions", label: "Transactions", icon: DollarSign },
     { id: "requisitions", label: "Requisitions", icon: Bell },
     { id: "algorithms", label: "Algorithms", icon: GitBranch },
+    { id: "analytics", label: "Analytics", icon: BarChart3 },
   ];
 
   const daysSince = (date: string) => {
@@ -237,6 +270,103 @@ export default function AdminPage() {
     { label: "Matched", value: (data.requisitions ?? []).filter((r) => r.status === "MATCHED").length, color: "#10b981" },
     { label: "Closed", value: (data.requisitions ?? []).filter((r) => r.status === "CLOSED").length, color: "#52525b" },
   ].filter((s) => s.value > 0);
+
+  /* ── Analytics derived data ── */
+  const allProps = data.propertiesWithUsers;
+  const priceBuckets = [
+    { label: "$0–150", value: allProps.filter((p) => p.price < 150).length },
+    { label: "$150–250", value: allProps.filter((p) => p.price >= 150 && p.price < 250).length },
+    { label: "$250–350", value: allProps.filter((p) => p.price >= 250 && p.price < 350).length },
+    { label: "$350–500", value: allProps.filter((p) => p.price >= 350 && p.price < 500).length },
+    { label: "$500+", value: allProps.filter((p) => p.price >= 500).length },
+  ];
+  const bedroomDist = [1, 2, 3, 4]
+    .map((n) => ({ label: `${n} bed${n > 1 ? "s" : ""}`, value: allProps.filter((p) => p.bedrooms === n).length }))
+    .concat([{ label: "5+ beds", value: allProps.filter((p) => p.bedrooms >= 5).length }])
+    .filter((b) => b.value > 0);
+  const propTypeSegments = [
+    { label: "House", value: allProps.filter((p) => p.propertyType === "HOUSE").length, color: "#10b981" },
+    { label: "Flat", value: allProps.filter((p) => p.propertyType === "FLAT").length, color: "#3b82f6" },
+    { label: "Room", value: allProps.filter((p) => p.propertyType === "ROOM").length, color: "#f59e0b" },
+    { label: "Townhouse", value: allProps.filter((p) => p.propertyType === "TOWNHOUSE").length, color: "#a855f7" },
+    { label: "Cottage", value: allProps.filter((p) => p.propertyType === "COTTAGE").length, color: "#ec4899" },
+  ].filter((s) => s.value > 0);
+  const constructionSegments = [
+    { label: "Brick", value: allProps.filter((p) => !p.houseConstruction || p.houseConstruction === "BRICK").length, color: "#f59e0b" },
+    { label: "Stone", value: allProps.filter((p) => p.houseConstruction === "STONE").length, color: "#a855f7" },
+    { label: "Mixed", value: allProps.filter((p) => p.houseConstruction === "MIXED").length, color: "#10b981" },
+    { label: "Wood", value: allProps.filter((p) => p.houseConstruction === "WOOD").length, color: "#3b82f6" },
+    { label: "Metal", value: allProps.filter((p) => p.houseConstruction === "METAL").length, color: "#ef4444" },
+  ].filter((s) => s.value > 0);
+  const roofSegments = [
+    { label: "Iron Sheets", value: allProps.filter((p) => !p.roofType || p.roofType === "IRON_SHEETS").length, color: "#3b82f6" },
+    { label: "Tiles", value: allProps.filter((p) => p.roofType === "TILES").length, color: "#10b981" },
+    { label: "Concrete", value: allProps.filter((p) => p.roofType === "CONCRETE").length, color: "#a855f7" },
+    { label: "Asbestos", value: allProps.filter((p) => p.roofType === "ASBESTOS").length, color: "#f59e0b" },
+    { label: "Thatch", value: allProps.filter((p) => p.roofType === "THATCH").length, color: "#6b7280" },
+  ].filter((s) => s.value > 0);
+  const amenityData = [
+    { label: "Electricity", value: allProps.filter((p) => p.hasElectricity).length, color: "#facc15" },
+    { label: "Running Water", value: allProps.filter((p) => p.hasWater).length, color: "#38bdf8" },
+    { label: "Security", value: allProps.filter((p) => p.hasSecurity).length, color: "#10b981" },
+    { label: "Borehole", value: allProps.filter((p) => p.hasBorehole).length, color: "#60a5fa" },
+    { label: "WiFi", value: allProps.filter((p) => p.hasWifi).length, color: "#a78bfa" },
+    { label: "Generator", value: allProps.filter((p) => p.hasGenerator).length, color: "#fb923c" },
+    { label: "Solar Power", value: allProps.filter((p) => p.hasSolarPower).length, color: "#fde047" },
+    { label: "Swimming Pool", value: allProps.filter((p) => p.hasPool).length, color: "#2dd4bf" },
+    { label: "Driveway", value: allProps.filter((p) => p.hasDriveway).length, color: "#94a3b8" },
+    { label: "Refuse Collection", value: allProps.filter((p) => p.hasRefuseCollection).length, color: "#86efac" },
+  ].sort((a, b) => b.value - a.value);
+  const topByViews = [...allProps].sort((a, b) => b.views - a.views).slice(0, 8).map((p) => ({
+    label: p.suburb, value: p.views,
+    sub: p.title.length > 12 ? p.title.slice(0, 11) + "…" : p.title,
+  }));
+  const suburbAvgPriceData = [...data.suburbStats]
+    .filter((s) => s._avg.price && s._avg.price > 0)
+    .sort((a, b) => (b._avg.price ?? 0) - (a._avg.price ?? 0))
+    .slice(0, 8)
+    .map((s) => ({ label: s.suburb, value: Math.round(s._avg.price ?? 0), sub: `$${Math.round(s._avg.price ?? 0)}` }));
+  const txAcc = data.transactions
+    .filter((tx) => tx.predictedPrice && tx.soldPrice && tx.soldPrice > 0)
+    .map((tx) => ({ ...tx, accuracy: Math.round((1 - Math.abs(tx.predictedPrice! - tx.soldPrice!) / tx.soldPrice!) * 100) }));
+  const avgAccuracy = txAcc.length > 0 ? Math.round(txAcc.reduce((s, t) => s + t.accuracy, 0) / txAcc.length) : null;
+  const highAcc = txAcc.filter((t) => t.accuracy >= 90).length;
+  const medAcc = txAcc.filter((t) => t.accuracy >= 70 && t.accuracy < 90).length;
+  const lowAcc = txAcc.filter((t) => t.accuracy < 70).length;
+  const totalListedValue = allProps.reduce((s, p) => s + p.price, 0);
+  const avgPrice = allProps.length > 0 ? Math.round(totalListedValue / allProps.length) : 0;
+  const topSuburb = data.suburbStats[0]?.suburb ?? "—";
+
+  /* ── CSV download helpers ── */
+  const downloadCSV = (rows: (string | number)[][], filename: string) => {
+    const csv = rows.map((r) => r.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+  const downloadPropertiesCSV = () => downloadCSV(
+    [["ID", "Title", "Suburb", "Type", "Bedrooms", "Price (USD)", "Status", "Algorithm", "Views", "Listed By", "Listed At"],
+     ...allProps.map((p) => [p.id, p.title, p.suburb, p.propertyType ?? "", p.bedrooms, p.price, p.status, p.algorithm ?? "", p.views, p.user?.name ?? "", p.createdAt])],
+    `properties-${new Date().toISOString().slice(0, 10)}.csv`
+  );
+  const downloadUsersCSV = () => downloadCSV(
+    [["ID", "Name", "Email", "Role", "Listings", "Joined"],
+     ...data.users.map((u) => [u.id, u.name, u.email, u.role, u._count.properties, u.createdAt])],
+    `users-${new Date().toISOString().slice(0, 10)}.csv`
+  );
+  const downloadTransactionsCSV = () => downloadCSV(
+    [["ID", "Property", "Suburb", "Listed Price", "Sold Price", "Predicted Price", "Status", "Listed At", "Sold At", "Buyer"],
+     ...data.transactions.map((tx) => [tx.id, tx.property.title, tx.property.suburb, tx.listedPrice, tx.soldPrice ?? "", tx.predictedPrice ?? "", tx.status, tx.listedAt, tx.soldAt ?? "", tx.buyer?.name ?? ""])],
+    `transactions-${new Date().toISOString().slice(0, 10)}.csv`
+  );
+  const downloadSuburbStatsCSV = () => downloadCSV(
+    [["Suburb", "Listing Count", "Average Price (USD)"],
+     ...data.suburbStats.map((s) => [s.suburb, s._count.id, Math.round(s._avg.price ?? 0)])],
+    `suburb-stats-${new Date().toISOString().slice(0, 10)}.csv`
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -625,6 +755,234 @@ export default function AdminPage() {
                 <BookOpen className="w-4 h-4" /> Full algorithm documentation →
               </Link>
             </div>
+          </div>
+        )}
+
+        {/* ══ ANALYTICS ══ */}
+        {activeTab === "analytics" && (
+          <div className="space-y-6">
+
+            {/* ─ Download Reports ─ */}
+            <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+              <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                <Download className="w-4 h-4 text-emerald-400" /> Download Reports
+              </h2>
+              <p className="text-xs text-zinc-600 mb-4">Export data as CSV for offline analysis or presentations</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: "Properties", sub: `${allProps.length} records`, fn: downloadPropertiesCSV, color: "emerald" },
+                  { label: "Users", sub: `${data.users.length} records`, fn: downloadUsersCSV, color: "blue" },
+                  { label: "Transactions", sub: `${data.transactions.length} records`, fn: downloadTransactionsCSV, color: "amber" },
+                  { label: "Suburb Stats", sub: `${data.suburbStats.length} suburbs`, fn: downloadSuburbStatsCSV, color: "purple" },
+                ].map((btn) => (
+                  <button
+                    key={btn.label}
+                    onClick={btn.fn}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left group ${
+                      btn.color === "emerald" ? "bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500/40" :
+                      btn.color === "blue" ? "bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40" :
+                      btn.color === "amber" ? "bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/40" :
+                      "bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20 hover:border-purple-500/40"
+                    }`}
+                  >
+                    <FileText className={`w-5 h-5 flex-shrink-0 ${
+                      btn.color === "emerald" ? "text-emerald-400" :
+                      btn.color === "blue" ? "text-blue-400" :
+                      btn.color === "amber" ? "text-amber-400" : "text-purple-400"
+                    }`} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-zinc-200">{btn.label}</p>
+                      <p className="text-xs text-zinc-500">{btn.sub}</p>
+                    </div>
+                    <Download className="w-4 h-4 ml-auto text-zinc-600 group-hover:text-zinc-300 transition-colors flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ─ Key Insights ─ */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Total Listed Value", value: formatCurrency(totalListedValue), sub: `across ${allProps.length} listings`, icon: <DollarSign className="w-5 h-5 text-emerald-400" />, color: "bg-emerald-500/10 border-emerald-500/20" },
+                { label: "Average Rent", value: formatCurrency(avgPrice), sub: "per month across all suburbs", icon: <TrendingUp className="w-5 h-5 text-blue-400" />, color: "bg-blue-500/10 border-blue-500/20" },
+                { label: "Most Listed Suburb", value: topSuburb, sub: `${data.suburbStats[0]?._count.id ?? 0} active listings`, icon: <Target className="w-5 h-5 text-amber-400" />, color: "bg-amber-500/10 border-amber-500/20" },
+                { label: "Prediction Accuracy", value: avgAccuracy !== null ? `${avgAccuracy}%` : "N/A", sub: `${txAcc.length} completed transactions`, icon: <BarChart3 className="w-5 h-5 text-purple-400" />, color: "bg-purple-500/10 border-purple-500/20" },
+              ].map((card) => (
+                <div key={card.label} className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-4">
+                  <div className={`w-10 h-10 rounded-xl ${card.color} border flex items-center justify-center mb-3`}>
+                    {card.icon}
+                  </div>
+                  <p className="text-xl font-bold text-zinc-100">{card.value}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5 font-medium">{card.label}</p>
+                  <p className="text-[10px] text-zinc-600 mt-1">{card.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* ─ Price Distribution & Property Types ─ */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+                <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                  <BarChart2 className="w-4 h-4 text-emerald-400" /> Price Distribution
+                </h2>
+                <p className="text-xs text-zinc-600 mb-4">Number of listings in each price bracket (USD/month)</p>
+                {allProps.length > 0
+                  ? <BarChart data={priceBuckets} color="emerald" />
+                  : <p className="text-zinc-600 text-sm text-center py-8">No data yet</p>}
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+                <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                  <Activity className="w-4 h-4 text-blue-400" /> Property Types
+                </h2>
+                <p className="text-xs text-zinc-600 mb-4">Breakdown of listing types on the platform</p>
+                <DonutChart segments={propTypeSegments.length ? propTypeSegments : [{ label: "None", value: 1, color: "#27272a" }]} />
+              </div>
+            </div>
+
+            {/* ─ Bedroom Distribution & Avg Price by Suburb ─ */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+                <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                  <Home className="w-4 h-4 text-amber-400" /> Bedroom Distribution
+                </h2>
+                <p className="text-xs text-zinc-600 mb-4">How many bedrooms listings typically have</p>
+                {bedroomDist.length > 0
+                  ? <BarChart data={bedroomDist} color="amber" />
+                  : <p className="text-zinc-600 text-sm text-center py-8">No data yet</p>}
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+                <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                  <TrendingUp className="w-4 h-4 text-purple-400" /> Average Price by Suburb
+                </h2>
+                <p className="text-xs text-zinc-600 mb-4">Average monthly rent (USD) ranked by suburb</p>
+                {suburbAvgPriceData.length > 0
+                  ? <BarChart data={suburbAvgPriceData} color="purple" />
+                  : <p className="text-zinc-600 text-sm text-center py-8">No data yet</p>}
+              </div>
+            </div>
+
+            {/* ─ Amenity Popularity ─ */}
+            <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+              <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Amenity Popularity
+              </h2>
+              <p className="text-xs text-zinc-600 mb-5">
+                How many of the {allProps.length} listed properties include each amenity (bar = proportion of total)
+              </p>
+              <div className="grid md:grid-cols-2 gap-x-10 gap-y-0">
+                <HorizontalBarChart data={amenityData.slice(0, 5)} maxOverride={allProps.length || 1} />
+                <HorizontalBarChart data={amenityData.slice(5)} maxOverride={allProps.length || 1} />
+              </div>
+            </div>
+
+            {/* ─ Construction, Roof & Views ─ */}
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+                <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                  <Home className="w-4 h-4 text-amber-400" /> Construction Type
+                </h2>
+                <p className="text-xs text-zinc-600 mb-4">Building material breakdown</p>
+                <DonutChart segments={constructionSegments.length ? constructionSegments : [{ label: "None", value: 1, color: "#27272a" }]} size={110} />
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+                <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                  <Home className="w-4 h-4 text-blue-400" /> Roof Types
+                </h2>
+                <p className="text-xs text-zinc-600 mb-4">Roofing material distribution</p>
+                <DonutChart segments={roofSegments.length ? roofSegments : [{ label: "None", value: 1, color: "#27272a" }]} size={110} />
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+                <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                  <Eye className="w-4 h-4 text-emerald-400" /> Top Listings by Views
+                </h2>
+                <p className="text-xs text-zinc-600 mb-4">Most viewed properties (engagement metric)</p>
+                {topByViews.length > 0
+                  ? <BarChart data={topByViews} color="blue" />
+                  : <p className="text-zinc-600 text-sm text-center py-8">No views yet</p>}
+              </div>
+            </div>
+
+            {/* ─ Prediction Accuracy ─ */}
+            <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+              <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                <BarChart3 className="w-4 h-4 text-purple-400" /> Algorithm Prediction Accuracy
+              </h2>
+              <p className="text-xs text-zinc-600 mb-4">
+                Comparing predicted vs actual rental prices on completed transactions
+              </p>
+              {txAcc.length === 0 ? (
+                <p className="text-zinc-600 text-sm text-center py-8">No completed transactions with prediction data yet</p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-zinc-800/40 rounded-xl p-4 text-center border border-zinc-700/30">
+                    <p className="text-3xl font-bold text-emerald-400">{avgAccuracy}%</p>
+                    <p className="text-xs text-zinc-500 mt-1">Average Accuracy</p>
+                    <p className="text-[10px] text-zinc-600 mt-0.5">{txAcc.length} samples</p>
+                  </div>
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
+                    <p className="text-3xl font-bold text-emerald-400">{highAcc}</p>
+                    <p className="text-xs text-zinc-500 mt-1">High Accuracy</p>
+                    <p className="text-[10px] text-zinc-600 mt-0.5">&ge;90% match</p>
+                  </div>
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-center">
+                    <p className="text-3xl font-bold text-amber-400">{medAcc}</p>
+                    <p className="text-xs text-zinc-500 mt-1">Medium Accuracy</p>
+                    <p className="text-[10px] text-zinc-600 mt-0.5">70–89% match</p>
+                  </div>
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center">
+                    <p className="text-3xl font-bold text-red-400">{lowAcc}</p>
+                    <p className="text-xs text-zinc-500 mt-1">Low Accuracy</p>
+                    <p className="text-[10px] text-zinc-600 mt-0.5">&lt;70% match</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ─ Listing Status & Algorithm Share ─ */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+                <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                  <Activity className="w-4 h-4 text-emerald-400" /> Listing Status Breakdown
+                </h2>
+                <p className="text-xs text-zinc-600 mb-4">Current availability across all listings</p>
+                <div className="space-y-3 mt-2">
+                  {[
+                    { label: "Available", value: allProps.filter((p) => p.status === "AVAILABLE").length, color: "#10b981", bg: "bg-emerald-500/10 border-emerald-500/20" },
+                    { label: "Rented", value: allProps.filter((p) => p.status === "RENTED").length, color: "#ef4444", bg: "bg-red-500/10 border-red-500/20" },
+                    { label: "Pending", value: allProps.filter((p) => p.status === "PENDING").length, color: "#f59e0b", bg: "bg-amber-500/10 border-amber-500/20" },
+                  ].map((s) => (
+                    <div key={s.label} className={`flex items-center justify-between p-3 rounded-xl border ${s.bg}`}>
+                      <span className="text-sm text-zinc-300 font-medium">{s.label}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-28 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${allProps.length ? (s.value / allProps.length) * 100 : 0}%`, background: s.color }} />
+                        </div>
+                        <span className="text-sm font-bold text-zinc-100 w-6 text-right">{s.value}</span>
+                        <span className="text-xs text-zinc-500 w-9 font-mono">{allProps.length ? Math.round((s.value / allProps.length) * 100) : 0}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-5">
+                <h2 className="font-semibold text-zinc-100 mb-1 flex items-center gap-2 text-sm">
+                  <GitBranch className="w-4 h-4 text-purple-400" /> Algorithm Usage Share
+                </h2>
+                <p className="text-xs text-zinc-600 mb-4">Which pricing algorithms landlords prefer when listing</p>
+                <DonutChart segments={algoSegments.length ? algoSegments : [{ label: "None", value: 1, color: "#27272a" }]} />
+                <div className="mt-4 pt-4 border-t border-zinc-800/50 space-y-1">
+                  {algoSegments.map((s) => (
+                    <div key={s.label} className="flex justify-between text-xs">
+                      <span className="text-zinc-500">{s.label}</span>
+                      <span className="font-mono text-zinc-300">
+                        {allProps.length ? Math.round((s.value / allProps.length) * 100) : 0}% of listings
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
       </motion.div>
