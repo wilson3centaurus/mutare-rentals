@@ -172,7 +172,12 @@ function PredictPageInner() {
   const labelClass = "block text-sm font-medium text-zinc-400 mb-1";
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div
+      className="relative min-h-screen"
+      style={{ backgroundImage: "url('/background.jpeg')", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}
+    >
+      <div className="absolute inset-0 bg-[#0a0a0f]/85" />
+    <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
@@ -527,6 +532,7 @@ function PredictPageInner() {
           </AnimatePresence>
         </div>
       </div>
+    </div>
     </div>
   );
 }

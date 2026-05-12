@@ -23,7 +23,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-zinc-500 text-sm leading-relaxed">
-              AI-driven geospatial model for predicting house rental prices in Mutare Province, Zimbabwe.
+              AI-driven geospatial model for predicting house rental prices in Mutare District, Zimbabwe.
             </p>
             <div className="flex gap-3 mt-4">
               <a href="mailto:brianngoma@example.com" title="Email" className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:text-emerald-400 hover:border-emerald-500/30 transition-all">

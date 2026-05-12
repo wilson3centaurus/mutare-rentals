@@ -56,7 +56,12 @@ export default function LoginPage() {
     "w-full bg-zinc-800/60 border border-zinc-700/50 text-zinc-200 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 placeholder-zinc-600";
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
+    <div
+      className="min-h-[80vh] flex items-center justify-center px-4 relative"
+      style={{ backgroundImage: "url('/background.jpeg')", backgroundSize: "cover", backgroundPosition: "center" }}
+    >
+      <div className="absolute inset-0 bg-[#0a0a0f]/80 backdrop-blur-[2px]" />
+      <div className="relative z-10 w-full flex items-center justify-center">
       {/* ── Error modal ── */}
       {error && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
@@ -180,6 +185,7 @@ export default function LoginPage() {
 
         
       </motion.div>
+      </div>
     </div>
   );
 }

@@ -82,7 +82,8 @@ export default function HomePage() {
     <div className="relative">
       {/* ═══════════ HERO ═══════════ */}
       <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-[#0d1117] to-[#0a0f0a]" />
+        <div className="absolute inset-0" style={{ backgroundImage: "url('/background.jpeg')", backgroundSize: "cover", backgroundPosition: "center" }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f]/90 via-[#0d1117]/80 to-[#0a0f0a]/85" />
         <NeuralNetBG />
         <Particles />
         <div className="absolute inset-0 grid-pattern opacity-30" />
@@ -101,7 +102,7 @@ export default function HomePage() {
               <span className="text-zinc-100">Predict Rental Prices</span>
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-300 to-cyan-400">
-                in Mutare Province
+                in Mutare District
               </span>
             </motion.h1>
 
@@ -402,7 +403,7 @@ export default function HomePage() {
                   </div>
                   <h2 className="text-2xl md:text-3xl font-bold text-zinc-100 mb-4">Amenities Impact on Price</h2>
                   <p className="text-zinc-400 leading-relaxed mb-6">
-                    Our AI model considers all key factors that influence rental prices in Mutare Province — from
+                    Our AI model considers all key factors that influence rental prices in Mutare District — from
                     electricity and water supply to suburb location and security. Get transparent, data-driven pricing.
                   </p>
                   <Link href="/predict" className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold px-6 py-3 rounded-xl transition-all shadow-lg shadow-emerald-500/20">
@@ -436,7 +437,7 @@ export default function HomePage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}>
             <motion.h2 variants={fadeUp} custom={0} className="text-2xl font-bold text-zinc-100 mb-3">Have a property to rent out?</motion.h2>
-            <motion.p variants={fadeUp} custom={1} className="text-zinc-500 mb-8 max-w-md mx-auto">List your property for free and reach renters across Mutare Province.</motion.p>
+            <motion.p variants={fadeUp} custom={1} className="text-zinc-500 mb-8 max-w-md mx-auto">List your property for free and reach renters across Mutare District.</motion.p>
             <motion.div variants={fadeUp} custom={2}>
               <Link href="/list-property" className="inline-flex items-center gap-2 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 hover:border-emerald-500/30 text-zinc-200 font-semibold px-8 py-3.5 rounded-xl transition-all">
                 List your property <ArrowRight className="w-4 h-4" />
