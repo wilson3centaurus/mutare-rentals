@@ -60,6 +60,7 @@ export default function ListPropertyPage() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [prediction, setPrediction] = useState<PredResult | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -163,12 +164,53 @@ export default function ListPropertyPage() {
   };
 
   const nextStep = () => {
-    if (step === 1 && (!form.suburb || !form.address)) { setError("Please fill suburb and address."); return; }
-    if (step === 5) { runPrediction(); }
+    setFieldErrors({});
     setError("");
+
+    if (step === 1) {
+      const errs: Record<string, string> = {};
+      const title = form.title.trim();
+      if (!title || title.length < 3) errs.title = "Title must be at least 3 characters.";
+      else if (title.length > 100) errs.title = "Title must be under 100 characters.";
+      if (!form.suburb) errs.suburb = "Please select a suburb.";
+      const addr = form.address.trim();
+      if (!addr || addr.length < 5) errs.address = "Enter a valid street address (min 5 characters).";
+      if (form.squareMeters) {
+        const sqm = Number(form.squareMeters);
+        if (!Number.isFinite(sqm) || sqm < 15 || sqm > 2000) errs.squareMeters = "Floor area must be between 15 and 2 000 m².";
+      }
+      if (form.yearBuilt) {
+        const yr = Number(form.yearBuilt);
+        const thisYear = new Date().getFullYear();
+        if (!Number.isInteger(yr) || yr < 1900 || yr > thisYear) errs.yearBuilt = `Year built must be between 1900 and ${thisYear}.`;
+      }
+      if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+    }
+
+    if (step === 4) {
+      const errs: Record<string, string> = {};
+      const name = form.contactName.trim();
+      if (!name || name.length < 2) errs.contactName = "Contact name must be at least 2 characters.";
+      else if (name.length > 60) errs.contactName = "Contact name must be under 60 characters.";
+      if (!form.contactPhone.trim()) {
+        errs.contactPhone = "Phone number is required.";
+      } else {
+        const digOnly = form.contactPhone.replace(/\D/g, "");
+        const normalized = digOnly.startsWith("263") ? "0" + digOnly.slice(3) : digOnly;
+        if (!/^0[0-9]{9}$/.test(normalized)) {
+          errs.contactPhone = "Enter a valid Zimbabwe number (e.g. +263 77 123 4567 or 077 123 4567).";
+        }
+      }
+      if (form.contactEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail.trim())) {
+        errs.contactEmail = "Enter a valid email address.";
+      }
+      if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+    }
+
+    if (step === 5) { runPrediction(); }
     setStep((s) => Math.min(s + 1, 6));
   };
-  const prevStep = () => { setError(""); setStep((s) => Math.max(s - 1, 1)); };
+  const prevStep = () => { setFieldErrors({}); setError(""); setStep((s) => Math.max(s - 1, 1)); };
 
   if (sessionStatus === "loading") return <div className="flex items-center justify-center py-32"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /></div>;
 
@@ -241,7 +283,8 @@ export default function ListPropertyPage() {
                 <h2 className="font-semibold text-zinc-100">Property Details</h2>
                 <div>
                   <label className={labelClass}>Listing Title *</label>
-                  <input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="e.g. 3-Bedroom Brick House in Chikanga" className={inputClass} />
+                  <input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="e.g. 3-Bedroom Brick House in Chikanga" className={`${inputClass}${fieldErrors.title ? " border-red-500/50" : ""}`} />
+                  {fieldErrors.title && <p className="text-xs text-red-400 mt-1">{fieldErrors.title}</p>}
                 </div>
                 <div>
                   <label className={labelClass}>Description</label>
@@ -250,14 +293,16 @@ export default function ListPropertyPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>Suburb *</label>
-                    <select value={form.suburb} onChange={(e) => update("suburb", e.target.value)} className={inputClass}>
+                    <select value={form.suburb} onChange={(e) => update("suburb", e.target.value)} className={`${inputClass}${fieldErrors.suburb ? " border-red-500/50" : ""}`}>
                       <option value="">Select suburb…</option>
                       {SUBURBS.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
+                    {fieldErrors.suburb && <p className="text-xs text-red-400 mt-1">{fieldErrors.suburb}</p>}
                   </div>
                   <div>
                     <label className={labelClass}>Street Address *</label>
-                    <input value={form.address} onChange={(e) => update("address", e.target.value)} placeholder="123 Bvumba Road" className={inputClass} />
+                    <input value={form.address} onChange={(e) => update("address", e.target.value)} placeholder="123 Bvumba Road" className={`${inputClass}${fieldErrors.address ? " border-red-500/50" : ""}`} />
+                    {fieldErrors.address && <p className="text-xs text-red-400 mt-1">{fieldErrors.address}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -300,12 +345,14 @@ export default function ListPropertyPage() {
                   </div>
                   <div>
                     <label className={labelClass}>Floor Area (m²)</label>
-                    <input type="number" value={form.squareMeters} onChange={(e) => update("squareMeters", e.target.value)} placeholder="e.g. 80" className={inputClass} />
+                    <input type="number" value={form.squareMeters} onChange={(e) => update("squareMeters", e.target.value)} placeholder="e.g. 80" className={`${inputClass}${fieldErrors.squareMeters ? " border-red-500/50" : ""}`} />
+                    {fieldErrors.squareMeters && <p className="text-xs text-red-400 mt-1">{fieldErrors.squareMeters}</p>}
                   </div>
                 </div>
                 <div>
                   <label className={labelClass}>Year Built</label>
-                  <input type="number" value={form.yearBuilt} onChange={(e) => update("yearBuilt", e.target.value)} placeholder="e.g. 2005" min={1900} max={2026} className={inputClass} />
+                  <input type="number" value={form.yearBuilt} onChange={(e) => update("yearBuilt", e.target.value)} placeholder="e.g. 2005" min={1900} max={2026} className={`${inputClass}${fieldErrors.yearBuilt ? " border-red-500/50" : ""}`} />
+                  {fieldErrors.yearBuilt && <p className="text-xs text-red-400 mt-1">{fieldErrors.yearBuilt}</p>}
                 </div>
               </>
             )}
@@ -394,16 +441,19 @@ export default function ListPropertyPage() {
                 </div>
                 <div>
                   <label className={labelClass}>Contact Name *</label>
-                  <input value={form.contactName} onChange={(e) => update("contactName", e.target.value)} placeholder="Full name" className={inputClass} />
+                  <input value={form.contactName} onChange={(e) => update("contactName", e.target.value)} placeholder="Full name" className={`${inputClass}${fieldErrors.contactName ? " border-red-500/50" : ""}`} />
+                  {fieldErrors.contactName && <p className="text-xs text-red-400 mt-1">{fieldErrors.contactName}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>Phone Number *</label>
-                    <input type="tel" value={form.contactPhone} onChange={(e) => update("contactPhone", e.target.value)} placeholder="+263 77 123 4567" className={inputClass} />
+                    <input type="tel" value={form.contactPhone} onChange={(e) => update("contactPhone", e.target.value)} placeholder="+263 77 123 4567" className={`${inputClass}${fieldErrors.contactPhone ? " border-red-500/50" : ""}`} />
+                    {fieldErrors.contactPhone && <p className="text-xs text-red-400 mt-1">{fieldErrors.contactPhone}</p>}
                   </div>
                   <div>
                     <label className={labelClass}>Email (optional)</label>
-                    <input type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} placeholder="you@example.com" className={inputClass} />
+                    <input type="email" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} placeholder="you@example.com" className={`${inputClass}${fieldErrors.contactEmail ? " border-red-500/50" : ""}`} />
+                    {fieldErrors.contactEmail && <p className="text-xs text-red-400 mt-1">{fieldErrors.contactEmail}</p>}
                   </div>
                 </div>
               </>

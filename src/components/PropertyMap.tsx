@@ -48,26 +48,38 @@ export default function PropertyMap({
       const map = L.map(containerRef.current).setView([center.lat, center.lng], zoom);
       mapRef.current = map;
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
-      }).addTo(map);
+      L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          maxZoom: 19,
+        }
+      ).addTo(map);
 
       properties.forEach((prop) => {
-        const color = prop.status === "AVAILABLE" ? "#10b981" : prop.status === "RENTED" ? "#ef4444" : "#f59e0b";
+        const color =
+          prop.status === "AVAILABLE"
+            ? "#10b981"
+            : prop.status === "RENTED"
+            ? "#ef4444"
+            : "#f59e0b";
+        // Use dark text on amber, white on others
+        const textColor = prop.status === "PENDING" ? "#1c1917" : "#ffffff";
 
         const icon = L.divIcon({
           className: "",
           html: `<div style="
             background:${color};
-            color:white;
-            padding:4px 8px;
+            color:${textColor};
+            padding:4px 9px;
             border-radius:6px;
             font-size:12px;
-            font-weight:600;
+            font-weight:700;
             white-space:nowrap;
-            box-shadow:0 2px 8px rgba(0,0,0,0.2);
-            border: 2px solid white;
+            box-shadow:0 2px 10px rgba(0,0,0,0.55);
+            border:2px solid rgba(255,255,255,0.25);
+            letter-spacing:0.5px;
           ">$${prop.price}</div>`,
           iconAnchor: [30, 16],
         });

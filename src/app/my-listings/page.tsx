@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
-import { Home, PlusCircle, Eye, MapPin, Bed, Loader2, ArrowRight } from "lucide-react";
+import { Home, PlusCircle, Eye, MapPin, Bed, Loader2, ArrowRight, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Property {
@@ -26,6 +26,18 @@ export default function MyListingsPage() {
   const router = useRouter();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/properties/${id}`, { method: "DELETE" });
+      if (res.ok) setDeletedIds((prev) => new Set(prev).add(id));
+    } catch { /* silently fail */ }
+    finally { setDeletingId(null); setConfirmId(null); }
+  };
 
   useEffect(() => {
     if (status === "loading") return;
@@ -92,40 +104,92 @@ export default function MyListingsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
             >
-              <Link href={`/properties/${p.id}`}>
-                <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4 hover:border-emerald-500/30 transition-all flex items-center gap-4">
-                  {/* Thumbnail */}
-                  <div className="w-16 h-16 rounded-lg bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center shrink-0 overflow-hidden">
-                    {p.images?.[0] ? (
-                      <img src={p.images[0]} alt={p.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <MapPin className="w-6 h-6 text-zinc-600" />
-                    )}
+              {deletedIds.has(p.id) ? (
+                <div className="bg-zinc-900/30 border border-zinc-800/30 rounded-xl p-4 flex items-center gap-4 opacity-50 select-none">
+                  <div className="w-16 h-16 rounded-lg bg-zinc-800/30 border border-zinc-700/20 flex items-center justify-center shrink-0">
+                    <MapPin className="w-6 h-6 text-zinc-700" />
                   </div>
-
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-zinc-200 truncate">{p.title}</p>
-                    <div className="flex items-center gap-3 text-xs text-zinc-500 mt-0.5">
-                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {p.suburb}</span>
-                      <span className="flex items-center gap-1"><Bed className="w-3 h-3" /> {p.bedrooms} bed</span>
-                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {p.views} views</span>
-                    </div>
+                    <p className="text-sm font-medium text-zinc-500 truncate line-through">{p.title}</p>
+                    <p className="text-xs text-zinc-600 mt-0.5">{p.suburb}</p>
                   </div>
-
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-emerald-400">{formatCurrency(p.price)}</p>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      p.status === "AVAILABLE" ? "bg-emerald-500/20 text-emerald-400" :
-                      p.status === "RENTED" ? "bg-red-500/20 text-red-400" :
-                      "bg-amber-500/20 text-amber-400"
-                    }`}>{p.status}</span>
+                    <p className="text-sm font-bold text-zinc-600">{formatCurrency(p.price)}</p>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-700/40 text-zinc-500">DELETED</span>
                   </div>
-
-                  <ArrowRight className="w-4 h-4 text-zinc-600 shrink-0" />
                 </div>
-              </Link>
+              ) : (
+                <div className="relative">
+                  <Link href={`/properties/${p.id}`} className="block">
+                    <div className={`bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4 hover:border-emerald-500/30 transition-all flex items-center gap-4${p.status === "RENTED" ? " pr-14" : ""}`}>
+                      {/* Thumbnail */}
+                      <div className="w-16 h-16 rounded-lg bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center shrink-0 overflow-hidden">
+                        {p.images?.[0] ? (
+                          <img src={p.images[0]} alt={p.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <MapPin className="w-6 h-6 text-zinc-600" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-zinc-200 truncate">{p.title}</p>
+                        <div className="flex items-center gap-3 text-xs text-zinc-500 mt-0.5">
+                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {p.suburb}</span>
+                          <span className="flex items-center gap-1"><Bed className="w-3 h-3" /> {p.bedrooms} bed</span>
+                          <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {p.views} views</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold text-emerald-400">{formatCurrency(p.price)}</p>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          p.status === "AVAILABLE" ? "bg-emerald-500/20 text-emerald-400" :
+                          p.status === "RENTED" ? "bg-red-500/20 text-red-400" :
+                          "bg-amber-500/20 text-amber-400"
+                        }`}>{p.status}</span>
+                      </div>
+
+                      {p.status !== "RENTED" && <ArrowRight className="w-4 h-4 text-zinc-600 shrink-0" />}
+                    </div>
+                  </Link>
+                  {p.status === "RENTED" && (
+                    <button
+                      onClick={() => setConfirmId(p.id)}
+                      title="Delete this listing"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
+                    >
+                      {deletingId === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
+              )}
             </motion.div>
           ))}
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-base font-semibold text-zinc-100 mb-2">Delete Listing?</h3>
+            <p className="text-sm text-zinc-400 mb-6">This will permanently delete the rented listing. This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmId(null)}
+                className="flex-1 py-2.5 rounded-xl border border-zinc-700/50 bg-zinc-800/60 text-zinc-300 text-sm font-medium hover:bg-zinc-800 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(confirmId)}
+                disabled={deletingId !== null}
+                className="flex-1 py-2.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-semibold hover:bg-red-500/30 transition-all disabled:opacity-60"
+              >
+                {deletingId ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Delete Listing"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

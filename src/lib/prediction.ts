@@ -172,18 +172,18 @@ export function hedonicPredict(input: PredictionInput): PredictionResult {
     steps.push({ step: "Bathroom fittings", value: bathTypeImpact, note: `${input.bathroomType ?? "SHOWER_ONLY"} premium` });
   }
 
-  // Utilities and amenities
+  // Utilities and amenities (reduced flat impacts — calibrated to Mutare market)
   const amenities: [boolean | undefined, string, number][] = [
-    [input.hasElectricity, "Mains electricity", 45],
-    [input.hasWater, "Running water", 35],
-    [input.hasSecurity, "Security", 40],
-    [input.hasWifi, "WiFi connectivity", 25],
-    [input.hasBorehole, "Borehole water", 20],
-    [input.hasGenerator, "Generator backup", 35],
-    [input.hasSolarPower, "Solar power", 30],
-    [input.hasPool, "Swimming pool", 60],
-    [input.hasDriveway, "Driveway/parking", 15],
-    [input.hasRefuseCollection, "Refuse collection", 15],
+    [input.hasElectricity, "Mains electricity", 12],
+    [input.hasWater, "Running water", 10],
+    [input.hasSecurity, "Security", 12],
+    [input.hasWifi, "WiFi connectivity", 8],
+    [input.hasBorehole, "Borehole water", 8],
+    [input.hasGenerator, "Generator backup", 10],
+    [input.hasSolarPower, "Solar power", 8],
+    [input.hasPool, "Swimming pool", 20],
+    [input.hasDriveway, "Driveway/parking", 5],
+    [input.hasRefuseCollection, "Refuse collection", 5],
   ];
   for (const [has, label, impact] of amenities) {
     if (has) {
@@ -374,56 +374,63 @@ export function costApproachPredict(input: PredictionInput): PredictionResult {
   const propertyValue = depreciated + landValue;
   steps.push({ step: "Total property value", value: Math.round(propertyValue), note: "Depreciated structure + land" });
 
-  // 7. Amenity value additions ($ capital value)
+  // 7. Amenity value additions ($ capital value — recalibrated)
   const amenityAdditions: [boolean | undefined, string, number][] = [
-    [input.hasElectricity, "Mains electricity connection", 3500],
-    [input.hasWater, "Reticulated water supply", 2800],
-    [input.hasBorehole, "Borehole & pump", 4500],
-    [input.hasPool, "Swimming pool", 8000],
-    [input.hasGenerator, "Generator installation", 4000],
-    [input.hasSolarPower, "Solar PV system", 5500],
-    [input.hasSecurity, "Security fencing & gate", 2500],
-    [input.hasDriveway, "Paved driveway", 1200],
-    [input.hasRefuseCollection, "Refuse collection service", 300],
+    [input.hasElectricity, "Mains electricity connection", 2000],
+    [input.hasWater, "Reticulated water supply", 1500],
+    [input.hasBorehole, "Borehole & pump", 2500],
+    [input.hasPool, "Swimming pool", 5000],
+    [input.hasGenerator, "Generator installation", 2500],
+    [input.hasSolarPower, "Solar PV system", 3000],
+    [input.hasSecurity, "Security fencing & gate", 1500],
+    [input.hasDriveway, "Paved driveway", 800],
+    [input.hasRefuseCollection, "Refuse collection service", 200],
   ];
   let amenityCapital = 0;
   for (const [has, lbl, val] of amenityAdditions) {
     if (has) {
       amenityCapital += val;
-      factors.push({ label: lbl, impact: Math.round(val * 0.085 / 12), positive: true });
+      factors.push({ label: lbl, impact: Math.round(val * 0.18 / 12), positive: true });
     }
   }
   if (amenityCapital > 0) steps.push({ step: "Amenity capital additions", value: amenityCapital, note: "Capital cost of installed amenities" });
 
   // 8. Bathroom fittings capital
-  const bathCapital: Record<string, number> = { SHOWER_AND_TUB: 4000, SHOWER_ONLY: 1800, TUB_ONLY: 1500, NONE: 0 };
-  const bCap = bathCapital[input.bathroomType ?? "SHOWER_ONLY"] ?? 1800;
+  const bathCapital: Record<string, number> = { SHOWER_AND_TUB: 2500, SHOWER_ONLY: 1200, TUB_ONLY: 1000, NONE: 0 };
+  const bCap = bathCapital[input.bathroomType ?? "SHOWER_ONLY"] ?? 1200;
   if (bCap > 0) steps.push({ step: "Bathroom fittings capital", value: bCap, note: `${input.bathroomType ?? "SHOWER_ONLY"} fitting value` });
 
   const totalValue = propertyValue + amenityCapital + bCap;
   steps.push({ step: "Total asset value", value: Math.round(totalValue), note: "Structure + land + amenities + fittings" });
 
-  // 9. Monthly rent via gross rental yield (8.5% p.a.)
-  const RENTAL_YIELD = 0.085;
+  // 9. Monthly rent via gross rental yield — calibrated to Mutare market (18% p.a.)
+  // Zimbabwe rental markets command significantly higher yields than western markets
+  // due to low property values relative to market rents.
+  const RENTAL_YIELD = 0.18;
   let monthlyRent = (totalValue * RENTAL_YIELD) / 12;
+
+  // Market-anchor blend: pull Cost estimate toward suburb median to correct for
+  // construction-cost homogeneity across different-income suburbs (60% market, 40% cost)
+  const suburbMedian = base * (PROPERTY_TYPE_MULTIPLIER[input.propertyType] ?? 1.0);
+  monthlyRent = monthlyRent * 0.40 + suburbMedian * 0.60;
 
   // Bedroom adjustment (more bedrooms = more rent even if not more mÂ²)
   const bedPremium = (input.bedrooms - 2) * 0.08; // +8% per extra bed above 2
   monthlyRent *= (1 + bedPremium);
   if (bedPremium !== 0) {
-    const bedImpact = Math.round((totalValue * RENTAL_YIELD / 12) * bedPremium);
+    const bedImpact = Math.round(monthlyRent - monthlyRent / (1 + bedPremium));
     factors.push({ label: `${input.bedrooms} bedrooms`, impact: bedImpact, positive: bedImpact >= 0 });
-    steps.push({ step: "Bedroom yield adjustment", value: bedImpact, note: `(${input.bedrooms} âˆ’ 2) Ã— 8% bedroom premium` });
+    steps.push({ step: "Bedroom yield adjustment", value: bedImpact, note: `(${input.bedrooms} − 2) × 8% bedroom premium` });
   }
 
   // WiFi is purely rental market (no capital value)
   if (input.hasWifi) {
-    monthlyRent += 25;
-    factors.push({ label: "WiFi connectivity", impact: 25, positive: true });
+    monthlyRent += 15;
+    factors.push({ label: "WiFi connectivity", impact: 15, positive: true });
   }
 
   monthlyRent = Math.max(monthlyRent, 50);
-  steps.push({ step: "Monthly rent (8.5% yield Ã· 12)", value: Math.round(monthlyRent), note: `($${Math.round(totalValue)} Ã— 8.5%) Ã· 12 months` });
+  steps.push({ step: "Monthly rent (18% yield ÷ 12, market-blended)", value: Math.round(monthlyRent), note: `Cost-basis 40% + suburb median 60% blend` });
 
   let confidence = 0.60;
   if (input.squareMeters) confidence += 0.10; // most sensitive to size
