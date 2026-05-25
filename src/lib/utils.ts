@@ -46,32 +46,48 @@ export const MUTARE_SUBURBS: Record<string, { lat: number; lng: number }> = {
   "Burma Valley":    { lat: -18.9000, lng: 32.7500 },
 };
 
-// Base monthly market rent (USD) per suburb — used by pricing algorithms
+// Base monthly market rent (USD) per suburb — 2-bed standard brick house baseline
+// Calibrated to actual Mutare, Zimbabwe rental market (2025/2026 USD prices)
+//
+// Tier 1 — Low-density / Upmarket suburbs (leafy, large stands, walled):
+//   Murambi, Morningside, Fairbridge, Greenside, Hobhouse, Renishaw, Silverstream, Yeovil
+//   Reality: 2-bed ~$200–280, 3-bed ~$300–450, 4-bed+ ~$450–600
+//
+// Tier 2 — Mid-density suburbs:
+//   Chikanga, Westlea, Mutasa Park, CBD, Fernvalley, Christmas Pass, Bvumba
+//   Reality: 2-bed ~$120–180, 3-bed ~$180–280
+//
+// Tier 3 — High-density suburbs:
+//   Sakubva, Dangamvura, Paulington, Zimta, Zimunya, Weirmouth, Chisamba
+//   Reality: 2-bed ~$60–100, rooms ~$30–60
 export const SUBURB_BASE_PRICES: Record<string, number> = {
-  "CBD":             450,
-  "Greenside":       400,
-  "Morningside":     380,
-  "Hobhouse":        330,
-  "Yeovil":          340,
-  "Renishaw":        360,
-  "Silverstream":    300,
-  "Christmas Pass":  280,
-  "Fairbridge":      290,
-  "Chikanga":        270,
-  "Westlea":         280,
-  "Fernvalley":      260,
-  "Mutasa Park":     230,
-  "Chisamba":        210,
-  "Murambi":         215,
-  "Zimta":           205,
-  "Dangamvura":      195,
-  "Paulington":      170,
-  "Weirmouth":       175,
-  "Sakubva":         160,
-  "Zimunya":         145,
-  "Penhalonga":      170,
-  "Bvumba":          310,
-  "Burma Valley":    255,
+  // ── Tier 1: Low-density, expensive ──────────────────────────────────────
+  "Murambi":         250,  // premium low-density; 2-bed base ~$250, 3-bed ~$380
+  "Morningside":     230,  // affluent hillside suburb, similar to Murambi
+  "Fairbridge":      220,  // established low-density, large plots
+  "Greenside":       210,  // upmarket, near golf course
+  "Hobhouse":        200,  // good low-density area
+  "Renishaw":        195,  // quiet low-density
+  "Silverstream":    185,  // low-density, slightly further
+  "Yeovil":          180,  // low-density residential
+  // ── Tier 2: Mid-density ─────────────────────────────────────────────────
+  "CBD":             160,  // commercial + residential mix; convenience premium
+  "Christmas Pass":  150,  // gateway suburb, decent infrastructure
+  "Bvumba":          145,  // scenic, some tourism; limited rental stock
+  "Chikanga":        130,  // large mid-density township; well-served
+  "Westlea":         125,  // mid-density, growing area
+  "Fernvalley":      120,  // mid-density residential
+  "Mutasa Park":     115,  // mid-density, slightly older stock
+  "Burma Valley":    110,  // rural-adjacent; limited amenities
+  "Penhalonga":      105,  // mining town fringe
+  // ── Tier 3: High-density ────────────────────────────────────────────────
+  "Chisamba":         90,  // high-density, affordable
+  "Sakubva":          80,  // one of Mutare's busiest high-density suburbs
+  "Dangamvura":       75,  // large high-density; very affordable
+  "Paulington":       70,  // high-density
+  "Zimta":            65,  // high-density, basic infrastructure
+  "Weirmouth":        65,  // high-density, peri-urban
+  "Zimunya":          55,  // peri-urban high-density; limited services
 };
 
 export const MUTARE_CENTER = { lat: -18.9558, lng: 32.6504 };

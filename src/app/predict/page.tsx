@@ -247,7 +247,7 @@ function PredictPageInner() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>Property Type</label>
-              <select title="Property Type" value={form.propertyType} onChange={(e) => update("propertyType", e.target.value)} className={inputClass}>
+              <select title="Property Type" value={form.propertyType} onChange={(e) => update("propertyType", e.target.value)} className={inputClass} disabled={form.listingType === "ROOM"}>
                 {["HOUSE", "FLAT", "ROOM", "TOWNHOUSE", "COTTAGE"].map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
@@ -255,7 +255,14 @@ function PredictPageInner() {
             </div>
             <div>
               <label className={labelClass}>Listing Type</label>
-              <select title="Listing Type" value={form.listingType} onChange={(e) => update("listingType", e.target.value)} className={inputClass}>
+              <select title="Listing Type" value={form.listingType} onChange={(e) => {
+                const lt = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  listingType: lt,
+                  ...(lt === "ROOM" ? { propertyType: "ROOM", bedrooms: "1", bathrooms: "1" } : {}),
+                }));
+              }} className={inputClass}>
                 <option value="WHOLE_HOUSE">Whole House</option>
                 <option value="ROOM">Room Only</option>
               </select>
@@ -265,15 +272,23 @@ function PredictPageInner() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>Bedrooms</label>
-              <select title="Bedrooms" value={form.bedrooms} onChange={(e) => update("bedrooms", e.target.value)} className={inputClass}>
-                {[1,2,3,4,5,6].map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
+              {form.listingType === "ROOM" ? (
+                <div className={`${inputClass} text-zinc-500 cursor-not-allowed`}>1 (Room)</div>
+              ) : (
+                <select title="Bedrooms" value={form.bedrooms} onChange={(e) => update("bedrooms", e.target.value)} className={inputClass}>
+                  {[1,2,3,4,5,6].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              )}
             </div>
             <div>
               <label className={labelClass}>Bathrooms</label>
-              <select title="Bathrooms" value={form.bathrooms} onChange={(e) => update("bathrooms", e.target.value)} className={inputClass}>
-                {[1,2,3,4].map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
+              {form.listingType === "ROOM" ? (
+                <div className={`${inputClass} text-zinc-500 cursor-not-allowed`}>1 (Room)</div>
+              ) : (
+                <select title="Bathrooms" value={form.bathrooms} onChange={(e) => update("bathrooms", e.target.value)} className={inputClass}>
+                  {[1,2,3,4].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              )}
             </div>
           </div>
 

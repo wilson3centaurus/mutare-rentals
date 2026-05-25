@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Brain, Github, Mail, BookOpen, Cpu, Database, Globe } from "lucide-react";
+import { MapPin, Brain, Github, Mail, BookOpen, Cpu, Database, Globe, Target } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -11,7 +11,7 @@ export default function Footer() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Main footer grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-10 mb-10">
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4 group">
@@ -89,6 +89,29 @@ export default function Footer() {
               <p className="text-xs text-zinc-600 mt-1">
                 Department of Information Systems
               </p>
+            </div>
+          </div>
+
+          {/* Objectives */}
+          <div>
+            <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+              <Target className="w-3.5 h-3.5 text-emerald-500/60" /> Objectives
+            </h3>
+            <div className="space-y-3">
+              {[
+                { num: "1", text: "AI-driven geospatial price model", href: "/predict" },
+                { num: "2", text: "Identify best prediction model", href: "/algorithms#compare" },
+                { num: "3", text: "Predict suburb price trends", href: "/algorithms#trends" },
+              ].map(({ num, text, href }) => (
+                <Link key={num} href={href} className="flex items-start gap-2.5 group">
+                  <span className="w-5 h-5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500/20 transition-all mt-0.5">
+                    {num}
+                  </span>
+                  <span className="text-sm text-zinc-500 group-hover:text-emerald-400 transition-colors leading-tight">
+                    {text}
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
         </div>

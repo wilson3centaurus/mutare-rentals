@@ -310,7 +310,12 @@ export default function ListPropertyPage() {
                     <label className={labelClass}>Listing Type</label>
                     <select value={form.listingType} onChange={(e) => {
                       const lt = e.target.value;
-                      setForm((f) => ({ ...f, listingType: lt, bedrooms: lt === "ROOM" ? "1" : f.bedrooms }));
+                      setForm((f) => ({
+                        ...f,
+                        listingType: lt,
+                        // Lock these when renting a single room
+                        ...(lt === "ROOM" ? { bedrooms: "1", bathrooms: "1", propertyType: "ROOM" } : {}),
+                      }));
                     }} className={inputClass}>
                       <option value="WHOLE_HOUSE">Whole Property</option>
                       <option value="ROOM">Single Room</option>
@@ -318,14 +323,18 @@ export default function ListPropertyPage() {
                   </div>
                   <div>
                     <label className={labelClass}>Property Type</label>
-                    <select value={form.propertyType} onChange={(e) => update("propertyType", e.target.value)} className={inputClass}>
-                      {[["HOUSE","House"],["FLAT","Flat / Apartment"],["ROOM","Room"],["TOWNHOUSE","Townhouse"],["COTTAGE","Cottage"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
+                    {form.listingType === "ROOM" ? (
+                      <div className={`${inputClass} text-zinc-500 cursor-not-allowed`}>Room (auto-set)</div>
+                    ) : (
+                      <select value={form.propertyType} onChange={(e) => update("propertyType", e.target.value)} className={inputClass}>
+                        {[["HOUSE","House"],["FLAT","Flat / Apartment"],["ROOM","Room"],["TOWNHOUSE","Townhouse"],["COTTAGE","Cottage"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                      </select>
+                    )}
                   </div>
                 </div>
                 {form.listingType === "ROOM" && (
                   <p className="text-xs text-blue-400/80 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
-                    Single room listings are counted as 1 bedroom — the bedroom count field is not applicable.
+                    Single room listings are fixed at 1 bedroom and 1 bathroom — property type is automatically set to <strong>Room</strong>. This keeps pricing fair and realistic.
                   </p>
                 )}
                 <div className={`grid gap-4 ${form.listingType === "ROOM" ? "grid-cols-2" : "grid-cols-3"}`}>
@@ -339,9 +348,13 @@ export default function ListPropertyPage() {
                   )}
                   <div>
                     <label className={labelClass}>Bathrooms</label>
-                    <select value={form.bathrooms} onChange={(e) => update("bathrooms", e.target.value)} className={inputClass}>
-                      {[1,2,3,4].map((n) => <option key={n} value={n}>{n}</option>)}
-                    </select>
+                    {form.listingType === "ROOM" ? (
+                      <div className={`${inputClass} text-zinc-500 cursor-not-allowed`}>1 (auto-set)</div>
+                    ) : (
+                      <select value={form.bathrooms} onChange={(e) => update("bathrooms", e.target.value)} className={inputClass}>
+                        {[1,2,3,4].map((n) => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    )}
                   </div>
                   <div>
                     <label className={labelClass}>Floor Area (m²)</label>

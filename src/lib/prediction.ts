@@ -93,43 +93,48 @@ const CONSTRUCTION_COST_PER_SQM: Record<string, number> = {
 
 export function hedonicPredict(input: PredictionInput): PredictionResult {
   const base = SUBURB_BASE_PRICES[input.suburb] ?? 200;
-  const typeM = PROPERTY_TYPE_MULTIPLIER[input.propertyType] ?? 1.0;
+  // If listing type is ROOM, enforce the ROOM multiplier regardless of propertyType
+  const effectiveType = input.listingType === "ROOM" ? "ROOM" : input.propertyType;
+  const typeM = PROPERTY_TYPE_MULTIPLIER[effectiveType] ?? 1.0;
   let price = base * typeM;
   const factors: PredictionResult["factors"] = [];
   const steps: PredictionStep[] = [
     { step: "Suburb base rent", value: base, note: `Market median for ${input.suburb}` },
-    { step: "Property type multiplier", value: Math.round(base * typeM), note: `${input.propertyType} â†’ Ã—${typeM}` },
+    { step: "Property type multiplier", value: Math.round(base * typeM), note: `${effectiveType} → ×${typeM}` },
   ];
 
-  // Bedrooms (Î² = 65)
-  const bedImpact = (input.bedrooms - 1) * 65;
+  // Bedrooms (β = $30 per extra bedroom above 1, or 12% of base — whichever is less extreme)
+  // In high-density suburbs a 3-bed house is only ~30–40% more than a 1-bed, not 2×
+  const bedIncrement = Math.round(base * 0.12); // 12% of suburb base per extra bed
+  const bedImpact = (input.bedrooms - 1) * bedIncrement;
   price += bedImpact;
   if (bedImpact !== 0) {
     factors.push({ label: `${input.bedrooms} Bedrooms`, impact: bedImpact, positive: bedImpact >= 0 });
-    steps.push({ step: "Bedroom premium", value: bedImpact, note: `(${input.bedrooms} âˆ’ 1) Ã— $65/bed` });
+    steps.push({ step: "Bedroom premium", value: bedImpact, note: `(${input.bedrooms} − 1) × $${bedIncrement} (12% of suburb base)` });
   }
 
-  // Bathrooms (Î² = 35)
-  const bathImpact = (input.bathrooms - 1) * 35;
+  // Bathrooms (β = 5% of base per extra bathroom)
+  const bathIncrement = Math.round(base * 0.05);
+  const bathImpact = (input.bathrooms - 1) * bathIncrement;
   price += bathImpact;
   if (bathImpact !== 0) {
     factors.push({ label: `${input.bathrooms} Bathrooms`, impact: bathImpact, positive: bathImpact >= 0 });
-    steps.push({ step: "Bathroom premium", value: bathImpact, note: `(${input.bathrooms} âˆ’ 1) Ã— $35/bath` });
+    steps.push({ step: "Bathroom premium", value: bathImpact, note: `(${input.bathrooms} − 1) × $${bathIncrement} (5% of suburb base)` });
   }
 
-  // Size (Î² = 1.5 per mÂ² above 50mÂ²)
+  // Size (β = 0.5% of base per 10m² above 60m² — size matters less in Zimbabwe rentals)
   if (input.squareMeters) {
-    const sizeImpact = Math.max(0, (input.squareMeters - 50) * 1.5);
+    const sizeImpact = Math.round(Math.max(0, (input.squareMeters - 60) / 10) * base * 0.015);
     price += sizeImpact;
     if (sizeImpact > 0) {
-      factors.push({ label: `${input.squareMeters}mÂ² floor area`, impact: sizeImpact, positive: true });
-      steps.push({ step: "Size premium", value: sizeImpact, note: `(${input.squareMeters} âˆ’ 50) Ã— $1.50/mÂ²` });
+      factors.push({ label: `${input.squareMeters}m² floor area`, impact: sizeImpact, positive: true });
+      steps.push({ step: "Size premium", value: sizeImpact, note: `${Math.max(0, input.squareMeters - 60)}m² above 60m² baseline × 1.5% of base per 10m²` });
     }
   }
 
-  // Construction quality
+  // Construction quality adjustment (smaller impact — tenants in Zim mostly care about suburb + rooms)
   const cq = CONSTRUCTION_QUALITY[input.houseConstruction ?? "BRICK"] ?? 0.85;
-  const constImpact = Math.round((cq - 0.85) * 80); // brick is baseline 0
+  const constImpact = Math.round((cq - 0.85) * 40); // brick is baseline, max ±$6
   price += constImpact;
   if (constImpact !== 0) {
     factors.push({ label: `${input.houseConstruction ?? "BRICK"} construction`, impact: constImpact, positive: constImpact >= 0 });
@@ -138,7 +143,7 @@ export function hedonicPredict(input: PredictionInput): PredictionResult {
 
   // Roof quality
   const rq = ROOF_QUALITY[input.roofType ?? "IRON_SHEETS"] ?? 0.45;
-  const roofImpact = Math.round((rq - 0.45) * 55); // iron sheets is baseline
+  const roofImpact = Math.round((rq - 0.45) * 30); // iron sheets is baseline, max ~$17
   price += roofImpact;
   if (roofImpact !== 0) {
     factors.push({ label: `${input.roofType ?? "IRON_SHEETS"} roof`, impact: roofImpact, positive: roofImpact >= 0 });
@@ -147,7 +152,7 @@ export function hedonicPredict(input: PredictionInput): PredictionResult {
 
   // Wall condition
   const wallF = CONDITION_FACTOR[input.wallCondition ?? "GOOD"] ?? 0.88;
-  const wallImpact = Math.round((wallF - 0.88) * 70);
+  const wallImpact = Math.round((wallF - 0.88) * 35);
   price += wallImpact;
   if (wallImpact !== 0) {
     factors.push({ label: `Wall condition: ${input.wallCondition}`, impact: wallImpact, positive: wallImpact >= 0 });
@@ -156,7 +161,7 @@ export function hedonicPredict(input: PredictionInput): PredictionResult {
 
   // Window condition
   const winF = CONDITION_FACTOR[input.windowCondition ?? "GOOD"] ?? 0.88;
-  const winImpact = Math.round((winF - 0.88) * 35);
+  const winImpact = Math.round((winF - 0.88) * 20);
   price += winImpact;
   if (winImpact !== 0) {
     factors.push({ label: `Window condition: ${input.windowCondition}`, impact: winImpact, positive: winImpact >= 0 });
@@ -164,34 +169,37 @@ export function hedonicPredict(input: PredictionInput): PredictionResult {
   }
 
   // Bathroom type
-  const bathroomImpacts: Record<string, number> = { SHOWER_AND_TUB: 30, SHOWER_ONLY: 10, TUB_ONLY: 5, NONE: -35 };
-  const bathTypeImpact = bathroomImpacts[input.bathroomType ?? "SHOWER_ONLY"] ?? 10;
+  const bathroomImpacts: Record<string, number> = { SHOWER_AND_TUB: 10, SHOWER_ONLY: 0, TUB_ONLY: 0, NONE: -15 };
+  const bathTypeImpact = bathroomImpacts[input.bathroomType ?? "SHOWER_ONLY"] ?? 0;
   price += bathTypeImpact;
   if (bathTypeImpact !== 0) {
     factors.push({ label: `Bathroom: ${input.bathroomType ?? "SHOWER_ONLY"}`, impact: bathTypeImpact, positive: bathTypeImpact >= 0 });
     steps.push({ step: "Bathroom fittings", value: bathTypeImpact, note: `${input.bathroomType ?? "SHOWER_ONLY"} premium` });
   }
 
-  // Utilities and amenities (reduced flat impacts — calibrated to Mutare market)
+  // Utilities and amenities — impacts are % of suburb base (more realistic for varied suburbs)
+  // In Sakubva ($80 base), electricity adds ~$8. In Murambi ($250 base), it adds ~$25.
   const amenities: [boolean | undefined, string, number][] = [
-    [input.hasElectricity, "Mains electricity", 12],
-    [input.hasWater, "Running water", 10],
-    [input.hasSecurity, "Security", 12],
-    [input.hasWifi, "WiFi connectivity", 8],
-    [input.hasBorehole, "Borehole water", 8],
-    [input.hasGenerator, "Generator backup", 10],
-    [input.hasSolarPower, "Solar power", 8],
-    [input.hasPool, "Swimming pool", 20],
-    [input.hasDriveway, "Driveway/parking", 5],
-    [input.hasRefuseCollection, "Refuse collection", 5],
+    [input.hasElectricity, "Mains electricity",   0.10],  // 10% of base
+    [input.hasWater,       "Running water",        0.08],  // 8%
+    [input.hasSecurity,    "Security",             0.07],  // 7%
+    [input.hasWifi,        "WiFi connectivity",    0.05],  // 5%
+    [input.hasBorehole,    "Borehole water",       0.06],  // 6%
+    [input.hasGenerator,   "Generator backup",     0.07],  // 7%
+    [input.hasSolarPower,  "Solar power",          0.06],  // 6%
+    [input.hasPool,        "Swimming pool",        0.10],  // 10%
+    [input.hasDriveway,    "Driveway/parking",     0.04],  // 4%
+    [input.hasRefuseCollection, "Refuse collection", 0.03], // 3%
   ];
-  for (const [has, label, impact] of amenities) {
+  for (const [has, label, pct] of amenities) {
+    const impact = Math.round(base * pct);
     if (has) {
       price += impact;
       factors.push({ label, impact, positive: true });
     } else if (has === false && (label === "Mains electricity" || label === "Running water")) {
-      price -= Math.round(impact * 0.6);
-      factors.push({ label: `No ${label.toLowerCase()}`, impact: -Math.round(impact * 0.6), positive: false });
+      const penalty = -Math.round(impact * 0.6);
+      price += penalty;
+      factors.push({ label: `No ${label.toLowerCase()}`, impact: penalty, positive: false });
     }
   }
 
@@ -237,12 +245,13 @@ export function hedonicPredict(input: PredictionInput): PredictionResult {
 
 export function comparableSalesPredict(input: PredictionInput): PredictionResult {
   const base = SUBURB_BASE_PRICES[input.suburb] ?? 200;
-  const typeM = PROPERTY_TYPE_MULTIPLIER[input.propertyType] ?? 1.0;
+  const effectiveType = input.listingType === "ROOM" ? "ROOM" : input.propertyType;
+  const typeM = PROPERTY_TYPE_MULTIPLIER[effectiveType] ?? 1.0;
   let price = base * typeM;
   const factors: PredictionResult["factors"] = [];
   const steps: PredictionStep[] = [
     { step: "Suburb median comp", value: base, note: `Median 2-bed, BRICK, standard house in ${input.suburb}` },
-    { step: "After type adjustment", value: Math.round(price), note: `${input.propertyType} Ã— ${typeM}` },
+    { step: "After type adjustment", value: Math.round(price), note: `${effectiveType} × ${typeM}` },
   ];
 
   // Each adjustment expressed as % of current price
@@ -255,18 +264,18 @@ export function comparableSalesPredict(input: PredictionInput): PredictionResult
     }
   }
 
-  // Bedrooms vs baseline of 2
+  // Bedrooms vs baseline of 2 — each extra bed adds ~12% (not 18%, which was too aggressive)
   const bedDiff = input.bedrooms - 2;
-  adjust(bedDiff * 0.18, `${input.bedrooms} bedrooms`, `${bedDiff > 0 ? "+" : ""}${bedDiff} bed vs 2-bed comp â†’ ${bedDiff * 18}% adj`);
+  adjust(bedDiff * 0.12, `${input.bedrooms} bedrooms`, `${bedDiff > 0 ? "+" : ""}${bedDiff} bed vs 2-bed comp → ${bedDiff * 12}% adj`);
 
-  // Bathrooms vs baseline of 1
+  // Bathrooms vs baseline of 1 — 6%
   const bathDiff = input.bathrooms - 1;
-  adjust(bathDiff * 0.09, `${input.bathrooms} bathrooms`, `${bathDiff > 0 ? "+" : ""}${bathDiff} bath vs 1-bath comp â†’ ${bathDiff * 9}% adj`);
+  adjust(bathDiff * 0.06, `${input.bathrooms} bathrooms`, `${bathDiff > 0 ? "+" : ""}${bathDiff} bath vs 1-bath comp → ${bathDiff * 6}% adj`);
 
-  // Size vs baseline of 70mÂ²
+  // Size vs baseline of 70m² — weight reduced to 12%
   if (input.squareMeters) {
     const sizeDiff = (input.squareMeters - 70) / 70;
-    adjust(sizeDiff * 0.20, `${input.squareMeters}mÂ² vs 70mÂ² comp`, `Size ratio ${(sizeDiff * 100).toFixed(0)}% â†’ 20% weight`);
+    adjust(sizeDiff * 0.12, `${input.squareMeters}m² vs 70m² comp`, `Size ratio ${(sizeDiff * 100).toFixed(0)}% → 12% weight`);
   }
 
   // Construction quality vs BRICK baseline
@@ -334,7 +343,9 @@ export function comparableSalesPredict(input: PredictionInput): PredictionResult
 // Works best for newer properties where construction costs are known.
 
 export function costApproachPredict(input: PredictionInput): PredictionResult {
-  const sqm = input.squareMeters ?? 65; // assume 65mÂ² if unknown
+  const isRoom = input.listingType === "ROOM";
+  // For a single room, use a realistic share of the building (~20m²), not the whole structure
+  const sqm = isRoom ? 20 : (input.squareMeters ?? 65);
   const base = SUBURB_BASE_PRICES[input.suburb] ?? 200;
   const factors: PredictionResult["factors"] = [];
   const steps: PredictionStep[] = [];
@@ -409,18 +420,24 @@ export function costApproachPredict(input: PredictionInput): PredictionResult {
   const RENTAL_YIELD = 0.18;
   let monthlyRent = (totalValue * RENTAL_YIELD) / 12;
 
-  // Market-anchor blend: pull Cost estimate toward suburb median to correct for
-  // construction-cost homogeneity across different-income suburbs (60% market, 40% cost)
-  const suburbMedian = base * (PROPERTY_TYPE_MULTIPLIER[input.propertyType] ?? 1.0);
-  monthlyRent = monthlyRent * 0.40 + suburbMedian * 0.60;
+  // Market-anchor blend — suburb median weighted heavily to stay realistic.
+  // ROOM listings: 10% cost / 90% median (cost approach poorly suited to shared-space rooms).
+  // Other types:   20% cost / 80% median.
+  const effectiveTypeCost = input.listingType === "ROOM" ? "ROOM" : input.propertyType;
+  const suburbMedian = base * (PROPERTY_TYPE_MULTIPLIER[effectiveTypeCost] ?? 1.0);
+  const costWeight = isRoom ? 0.10 : 0.20;
+  monthlyRent = monthlyRent * costWeight + suburbMedian * (1 - costWeight);
 
-  // Bedroom adjustment (more bedrooms = more rent even if not more mÂ²)
-  const bedPremium = (input.bedrooms - 2) * 0.08; // +8% per extra bed above 2
-  monthlyRent *= (1 + bedPremium);
-  if (bedPremium !== 0) {
-    const bedImpact = Math.round(monthlyRent - monthlyRent / (1 + bedPremium));
-    factors.push({ label: `${input.bedrooms} bedrooms`, impact: bedImpact, positive: bedImpact >= 0 });
-    steps.push({ step: "Bedroom yield adjustment", value: bedImpact, note: `(${input.bedrooms} − 2) × 8% bedroom premium` });
+  // Bedroom adjustment (more bedrooms = more rent even if not more m²)
+  // Rooms are locked at 1 bed so no adjustment applies there.
+  if (!isRoom) {
+    const bedPremium = (input.bedrooms - 2) * 0.08; // +8% per extra bed above 2
+    monthlyRent *= (1 + bedPremium);
+    if (bedPremium !== 0) {
+      const bedImpact = Math.round(monthlyRent - monthlyRent / (1 + bedPremium));
+      factors.push({ label: `${input.bedrooms} bedrooms`, impact: bedImpact, positive: bedImpact >= 0 });
+      steps.push({ step: "Bedroom yield adjustment", value: bedImpact, note: `(${input.bedrooms} − 2) × 8% bedroom premium` });
+    }
   }
 
   // WiFi is purely rental market (no capital value)

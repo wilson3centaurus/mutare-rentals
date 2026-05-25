@@ -1,11 +1,12 @@
-import { BookOpen, BarChart2, TrendingUp, Building2, CheckCircle2, ArrowRight } from "lucide-react";
+import { BookOpen, BarChart2, TrendingUp, Building2, CheckCircle2, ArrowRight, Target } from "lucide-react";
 import Link from "next/link";
+import DynamicSections from "./DynamicSections";
 
 export default function AlgorithmsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-10">
+      <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
             <BookOpen className="w-5 h-5 text-purple-400" />
@@ -16,6 +17,26 @@ export default function AlgorithmsPage() {
           All rental prices on Mutare Rentals are set algorithmically — never by the landlord — to ensure fair,
           standardised pricing across all listings. Here is how each algorithm works.
         </p>
+      </div>
+
+      {/* Objective 1 banner */}
+      <div className="mb-8 flex items-start gap-3 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-5">
+        <span className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+        <div>
+          <p className="text-sm font-semibold text-emerald-300 mb-1">Objective 1 — AI-Driven Geospatial Model to Predict House Rental Prices</p>
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            This system implements three deterministic pricing algorithms — Hedonic Pricing, Comparable Sales Analysis, and Cost Approach — each calibrated
+            to the Mutare, Zimbabwe rental market. Predictions are anchored to real suburb-level geospatial price data. See each model below.
+          </p>
+          <div className="flex gap-2 mt-3">
+            <Link href="/predict" className="px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium hover:bg-emerald-500/30 transition-all flex items-center gap-1.5">
+              <Target className="w-3 h-3" /> Try Price Calculator
+            </Link>
+            <Link href="/map" className="px-3 py-1.5 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-zinc-400 text-xs font-medium hover:bg-zinc-800 transition-all">
+              🗺️ View on Map
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Algorithm 1 — Hedonic */}
@@ -238,6 +259,9 @@ export default function AlgorithmsPage() {
           </Link>
         </div>
       </section>
+
+      {/* Objectives 2 & 3 — Model Comparison + Suburb Trends (client-only) */}
+      <DynamicSections />
     </div>
   );
 }
