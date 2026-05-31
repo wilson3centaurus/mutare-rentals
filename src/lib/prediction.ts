@@ -58,7 +58,7 @@ export interface PredictionResult {
 // â”€â”€â”€ Shared lookup tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PROPERTY_TYPE_MULTIPLIER: Record<string, number> = {
-  HOUSE: 1.00, TOWNHOUSE: 0.92, FLAT: 0.82, COTTAGE: 0.72, ROOM: 0.40,
+  HOUSE: 1.00, TOWNHOUSE: 0.92, FLAT: 0.82, COTTAGE: 0.72, ROOM: 0.22,
 };
 
 // Construction quality index (0â€“1)

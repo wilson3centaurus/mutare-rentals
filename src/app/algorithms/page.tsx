@@ -1,6 +1,7 @@
 import { BookOpen, BarChart2, TrendingUp, Building2, CheckCircle2, ArrowRight, Target } from "lucide-react";
 import Link from "next/link";
 import DynamicSections from "./DynamicSections";
+import { HedonicCharts, ComparableSalesCharts, CostApproachCharts } from "./AlgorithmCharts";
 
 export default function AlgorithmsPage() {
   return (
@@ -72,9 +73,9 @@ export default function AlgorithmsPage() {
           </div>
 
           <div>
-            <p className="font-medium text-zinc-300 mb-2">Suburb base prices (USD/month):</p>
+            <p className="font-medium text-zinc-300 mb-2">Sample suburb base prices (USD/month, 2-bed house):</p>
             <div className="grid grid-cols-3 gap-1.5 text-xs">
-              {[["CBD","$450"],["Greenside","$400"],["Morningside","$380"],["Renishaw","$360"],["Hobhouse","$330"],["Yeovil","$340"],["Chikanga","$270"],["Westlea","$280"],["Fernvalley","$260"],["Dangamvura","$195"],["Sakubva","$160"],["Zimunya","$145"]].map(([s,p]) => (
+              {[["Murambi","$570"],["Morningside","$560"],["Darlington","$570"],["Greenside","$538"],["Hobhouse","$302"],["Chikanga","$302"],["Dangamvura","$302"],["Sakubva","$274"],["Paulington","$230"],["Zimta","$219"],["Weirmouth","$219"],["Zimunya","$202"]].map(([s,p]) => (
                 <div key={s} className="flex justify-between bg-zinc-800/40 rounded-lg px-2 py-1">
                   <span className="text-zinc-500">{s}</span>
                   <span className="text-zinc-300">{p}</span>
@@ -101,6 +102,8 @@ export default function AlgorithmsPage() {
               ))}
             </div>
           </div>
+
+          <HedonicCharts />
         </div>
       </section>
 
@@ -154,6 +157,8 @@ export default function AlgorithmsPage() {
               ))}
             </div>
           </div>
+
+          <ComparableSalesCharts />
         </div>
       </section>
 
@@ -216,6 +221,8 @@ export default function AlgorithmsPage() {
             </div>
           </div>
         </div>
+
+        <CostApproachCharts />
       </section>
 
       {/* Which to use */}

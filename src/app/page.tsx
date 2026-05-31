@@ -129,6 +129,26 @@ export default function HomePage() {
               </Link>
             </motion.div>
 
+            {/* Dissertation objective quick-links */}
+            <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-2.5 justify-center mt-2">
+              {[
+                { num: "1", label: "AI Geospatial Price Model", href: "/predict" },
+                { num: "2", label: "Identify Best Algorithm", href: "/algorithms#compare" },
+                { num: "3", label: "Predict Suburb Trends", href: "/algorithms#trends" },
+              ].map(({ num, label, href }) => (
+                <Link
+                  key={num}
+                  href={href}
+                  className="inline-flex items-center gap-2 bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-700/40 hover:border-emerald-500/30 text-zinc-400 hover:text-emerald-300 text-sm font-medium px-4 py-2 rounded-xl transition-all backdrop-blur-sm"
+                >
+                  <span className="w-5 h-5 rounded-md bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                    {num}
+                  </span>
+                  {label}
+                </Link>
+              ))}
+            </motion.div>
+
             <motion.div variants={fadeUp} custom={4} className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto">
               {[
                 { value: "12+", label: "Suburbs" },
