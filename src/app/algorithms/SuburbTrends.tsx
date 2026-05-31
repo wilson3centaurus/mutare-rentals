@@ -66,9 +66,8 @@ export default function SuburbTrends() {
   return (
     <div id="trends" className="mt-6 bg-zinc-900/60 border border-blue-500/20 rounded-2xl p-6">
       <div className="flex items-start gap-3 mb-4">
-        <span className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
         <div>
-          <h2 className="font-bold text-zinc-100">Objective 3 — Predict Price Trends in a Selected Suburb</h2>
+          <h2 className="font-bold text-zinc-100">Market Trends</h2>
           <p className="text-sm text-zinc-500 mt-0.5">
             Select a suburb to explore rental price trends from 2021 to the current year, plus 2-year projections modelled from algorithmic baselines.
           </p>

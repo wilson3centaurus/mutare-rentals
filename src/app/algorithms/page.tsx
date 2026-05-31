@@ -20,11 +20,10 @@ export default function AlgorithmsPage() {
         </p>
       </div>
 
-      {/* Objective 1 banner */}
+      {/* Price prediction overview */}
       <div className="mb-8 flex items-start gap-3 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-5">
-        <span className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
         <div>
-          <p className="text-sm font-semibold text-emerald-300 mb-1">Objective 1 — AI-Driven Geospatial Model to Predict House Rental Prices</p>
+          <p className="text-sm font-semibold text-emerald-300 mb-1">House Price Prediction</p>
           <p className="text-xs text-zinc-500 leading-relaxed">
             This system implements three deterministic pricing algorithms — Hedonic Pricing, Comparable Sales Analysis, and Cost Approach — each calibrated
             to the Mutare, Zimbabwe rental market. Predictions are anchored to real suburb-level geospatial price data. See each model below.
@@ -267,7 +266,7 @@ export default function AlgorithmsPage() {
         </div>
       </section>
 
-      {/* Objectives 2 & 3 — Model Comparison + Suburb Trends (client-only) */}
+      {/* Model comparison and suburb trends (client-only) */}
       <DynamicSections />
     </div>
   );

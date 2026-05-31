@@ -67,9 +67,8 @@ export default function ModelComparison() {
   return (
     <div id="compare" className="mt-8 bg-zinc-900/60 border border-emerald-500/20 rounded-2xl p-6">
       <div className="flex items-start gap-3 mb-4">
-        <span className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
         <div>
-          <h2 className="font-bold text-zinc-100">Objective 2 — Identify the Best Model</h2>
+          <h2 className="font-bold text-zinc-100">Best Algorithm</h2>
           <p className="text-sm text-zinc-500 mt-0.5">
             Run all three algorithms on the same property and compare outputs side-by-side to identify which model gives the most accurate and consistent estimate.
           </p>
