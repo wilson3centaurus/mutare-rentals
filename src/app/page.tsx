@@ -107,7 +107,7 @@ export default function HomePage() {
             </motion.h1>
 
             <motion.p variants={fadeUp} custom={2} className="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-              An AI-driven geospatial model that predicts house rental prices using machine learning,
+              An AI-driven model that predicts house rental prices using machine learning,
               spatial analysis, and real market data across Mutare, Zimbabwe.
             </motion.p>
 
@@ -132,8 +132,8 @@ export default function HomePage() {
             {/* Dissertation objective quick-links */}
             <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-2.5 justify-center mt-2">
               {[
-                { label: "Best Algorithm", href: "/algorithms#compare" },
-                { label: "Market Trends", href: "/algorithms#trends" },
+                { label: "Best Algorithm", href: "/algorithms/best" },
+                { label: "Market Trends", href: "/algorithms/trends" },
               ].map(({ label, href }) => (
                 <Link
                   key={label}
@@ -174,7 +174,7 @@ export default function HomePage() {
               How the Model Works
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-zinc-500 max-w-xl mx-auto">
-              Our geospatial AI model processes property features through multiple stages to predict accurate rental prices.
+              Our AI model processes property features through multiple stages to predict accurate rental prices.
             </motion.p>
           </motion.div>
 
@@ -283,7 +283,7 @@ export default function HomePage() {
               },
               {
                 icon: <Layers className="w-6 h-6" />,
-                title: "Geospatial Feature Engineering",
+                title: "Feature Engineering",
                 desc: "Address strings are geocoded via OpenStreetMap Nominatim API to lat/lng coordinates. Spatial features include distance-to-CBD, suburb median income, proximity to schools and amenities calculated using Haversine distance.",
                 tags: ["Nominatim", "Haversine", "GeoJSON"],
                 color: "text-rose-400",
@@ -359,7 +359,7 @@ export default function HomePage() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { icon: <Search className="w-6 h-6 text-emerald-400" />, title: "Browse Listings", desc: "Search verified rental properties across all Mutare suburbs with detailed amenity info and contact details.", href: "/properties", cta: "View listings" },
-              { icon: <Brain className="w-6 h-6 text-cyan-400" />, title: "AI Price Predictor", desc: "Input property details and let our ML model estimate a fair rental price using trained geospatial algorithms.", href: "/predict", cta: "Try predictor" },
+              { icon: <Brain className="w-6 h-6 text-cyan-400" />, title: "AI Price Predictor", desc: "Input property details and let our ML model estimate a fair rental price using trained algorithms.", href: "/predict", cta: "Try predictor" },
               { icon: <Globe className="w-6 h-6 text-purple-400" />, title: "Interactive GIS Map", desc: "Visualize all properties on an interactive map with price overlays, suburb boundaries, and spatial clustering.", href: "/map", cta: "Open map" },
             ].map((feat, i) => (
               <motion.div key={feat.title} variants={fadeUp} custom={i}>

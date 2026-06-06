@@ -20,7 +20,7 @@ interface AlgoResult {
   predictedPrice: number; minPrice: number; maxPrice: number; confidence: number;
 }
 
-export default function ModelComparison() {
+export default function ModelComparison({ standalone = false }: { standalone?: boolean }) {
   const [suburb, setSuburb] = useState("Murambi");
   const [bedrooms, setBedrooms] = useState("3");
   const [bathrooms, setBathrooms] = useState("1");
@@ -65,7 +65,7 @@ export default function ModelComparison() {
   const select = "w-full bg-zinc-800/60 border border-zinc-700/50 text-zinc-200 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50";
 
   return (
-    <div id="compare" className="mt-8 bg-zinc-900/60 border border-emerald-500/20 rounded-2xl p-6">
+    <div id="compare" className={`${standalone ? "" : "mt-8"} bg-zinc-900/60 border border-emerald-500/20 rounded-2xl p-6`}>
       <div className="flex items-start gap-3 mb-4">
         <div>
           <h2 className="font-bold text-zinc-100">Best Algorithm</h2>

@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
-import { Home, PlusCircle, Eye, MapPin, Bed, Loader2, ArrowRight, Trash2 } from "lucide-react";
+import { Home, PlusCircle, Eye, MapPin, Bed, Loader2, ArrowRight, Trash2, SquarePen } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Property {
@@ -121,7 +121,7 @@ export default function MyListingsPage() {
               ) : (
                 <div className="relative">
                   <Link href={`/properties/${p.id}`} className="block">
-                    <div className={`bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4 hover:border-emerald-500/30 transition-all flex items-center gap-4${p.status === "RENTED" ? " pr-14" : ""}`}>
+                    <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4 pr-28 hover:border-emerald-500/30 transition-all flex items-center gap-4">
                       {/* Thumbnail */}
                       <div className="w-16 h-16 rounded-lg bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center shrink-0 overflow-hidden">
                         {p.images?.[0] ? (
@@ -149,18 +149,25 @@ export default function MyListingsPage() {
                         }`}>{p.status}</span>
                       </div>
 
-                      {p.status !== "RENTED" && <ArrowRight className="w-4 h-4 text-zinc-600 shrink-0" />}
+                      <ArrowRight className="w-4 h-4 text-zinc-600 shrink-0" />
                     </div>
                   </Link>
-                  {p.status === "RENTED" && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    <Link
+                      href={`/list-property?edit=${p.id}`}
+                      title="Edit this listing"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all"
+                    >
+                      <SquarePen className="w-4 h-4" />
+                    </Link>
                     <button
                       onClick={() => setConfirmId(p.id)}
                       title="Delete this listing"
-                      className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
                     >
                       {deletingId === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                     </button>
-                  )}
+                  </div>
                 </div>
               )}
             </motion.div>
@@ -173,7 +180,7 @@ export default function MyListingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <h3 className="text-base font-semibold text-zinc-100 mb-2">Delete Listing?</h3>
-            <p className="text-sm text-zinc-400 mb-6">This will permanently delete the rented listing. This action cannot be undone.</p>
+            <p className="text-sm text-zinc-400 mb-6">This will permanently delete the selected listing. This action cannot be undone.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmId(null)}

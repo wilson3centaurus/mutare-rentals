@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "MutareRentals – AI-Powered House Rental Prediction | Mutare",
   description:
-    "AI-driven geospatial model to predict and browse house rental prices in Mutare District, Zimbabwe. Built with ML & Deep Learning.",
+    "AI-driven model to predict and browse house rental prices in Mutare District, Zimbabwe. Built with ML & Deep Learning.",
 };
 
 export default function RootLayout({

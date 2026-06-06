@@ -1,6 +1,6 @@
 # MutareRentals 🏠
 
-AI-driven geospatial platform to browse, list, and predict house rental prices in **Mutare Province, Zimbabwe**.
+AI-driven platform to browse, list, and predict house rental prices in **Mutare Province, Zimbabwe**.
 
 > **Project by:** Brian Ngoma (M22DNX) — Dissertation Project
 

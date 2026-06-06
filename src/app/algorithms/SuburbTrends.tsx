@@ -39,7 +39,7 @@ const TIER_INSIGHT = {
 };
 const TIER_COLOR = { "low-density": "#10b981", "mid-density": "#3b82f6", "high-density": "#f59e0b" };
 
-export default function SuburbTrends() {
+export default function SuburbTrends({ standalone = false }: { standalone?: boolean }) {
   const [suburb, setSuburb] = useState("Murambi");
   const base = SUBURB_BASE_PRICES[suburb] ?? 150;
   const tier = TIER[suburb] ?? "mid-density";
@@ -64,7 +64,7 @@ export default function SuburbTrends() {
   const splitX = PL + (HISTORY.length - 1) * xStep;
 
   return (
-    <div id="trends" className="mt-6 bg-zinc-900/60 border border-blue-500/20 rounded-2xl p-6">
+    <div id="trends" className={`${standalone ? "" : "mt-6"} bg-zinc-900/60 border border-blue-500/20 rounded-2xl p-6`}>
       <div className="flex items-start gap-3 mb-4">
         <div>
           <h2 className="font-bold text-zinc-100">Market Trends</h2>

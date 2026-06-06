@@ -1,13 +1,13 @@
 ﻿/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState, useRef } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { SUBURBS, MUTARE_SUBURBS, formatCurrency } from "@/lib/utils";
 import {
   PlusCircle, CheckCircle2, Loader2, ImagePlus, X, ChevronRight, ChevronLeft,
   Home, Wrench, Zap, UserCircle, Camera, BarChart2, Lock, TrendingUp,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -49,12 +49,16 @@ type PredResult = {
   steps: { step: string; value: number; note: string }[];
 };
 
-export default function ListPropertyPage() {
+function ListPropertyForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status: sessionStatus } = useSession();
+  const editId = searchParams.get("edit");
+  const isEditing = Boolean(editId);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [predicting, setPredicting] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -85,7 +89,79 @@ export default function ListPropertyPage() {
   const update = (field: string, value: string | boolean) =>
     setForm((f) => ({ ...f, [field]: value }));
 
+  useEffect(() => {
+    if (!isEditing || !editId || sessionStatus === "loading" || !session) return;
+
+    let cancelled = false;
+    setLoadingExisting(true);
+    setError("");
+
+    fetch(`/api/properties/${editId}?mode=edit`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled || !data?.property) return;
+        const property = data.property;
+        setForm((current) => ({
+          ...current,
+          title: property.title ?? "",
+          description: property.description ?? "",
+          address: property.address ?? "",
+          suburb: property.suburb ?? "",
+          propertyType: property.propertyType ?? "HOUSE",
+          listingType: property.listingType ?? "WHOLE_HOUSE",
+          bedrooms: String(property.bedrooms ?? 2),
+          bathrooms: String(property.bathrooms ?? 1),
+          squareMeters: property.squareMeters ? String(property.squareMeters) : "",
+          yearBuilt: property.yearBuilt ? String(property.yearBuilt) : "",
+          houseConstruction: property.houseConstruction ?? "BRICK",
+          roofType: property.roofType ?? "IRON_SHEETS",
+          windowCondition: property.windowCondition ?? "GOOD",
+          wallCondition: property.wallCondition ?? "GOOD",
+          bathroomType: property.bathroomType ?? "SHOWER_ONLY",
+          hasWater: property.hasWater ?? false,
+          hasElectricity: property.hasElectricity ?? false,
+          hasRefuseCollection: property.hasRefuseCollection ?? false,
+          hasSecurity: property.hasSecurity ?? false,
+          hasWifi: property.hasWifi ?? false,
+          hasBorehole: property.hasBorehole ?? false,
+          hasDriveway: property.hasDriveway ?? false,
+          hasPool: property.hasPool ?? false,
+          hasGenerator: property.hasGenerator ?? false,
+          hasSolarPower: property.hasSolarPower ?? false,
+          contactName: property.contactName ?? session.user?.name ?? "",
+          contactPhone: property.contactPhone ?? "",
+          contactEmail: property.contactEmail ?? session.user?.email ?? "",
+          contactRole: property.contactRole ?? "LANDLORD",
+          algorithm: property.algorithm ?? "HEDONIC",
+        }));
+        setImagePreviews(property.images ?? []);
+        setPrediction({
+          predictedPrice: Math.round(property.price ?? 0),
+          minPrice: Math.round((property.price ?? 0) * 0.9),
+          maxPrice: Math.round((property.price ?? 0) * 1.1),
+          confidence: 90,
+          algorithm: property.algorithm ?? "HEDONIC",
+          factors: [],
+          steps: [],
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setError("Failed to load this listing for editing.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingExisting(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, isEditing, session, sessionStatus]);
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isEditing) {
+      setError("Photo editing is not available here yet. You can still update the listing details and price.");
+      return;
+    }
     const files = Array.from(e.target.files ?? []);
     if (files.length + imageFiles.length > 8) { setError("Maximum 8 images"); return; }
     setError("");
@@ -130,21 +206,21 @@ export default function ListPropertyPage() {
     const coords = MUTARE_SUBURBS[form.suburb] ?? { lat: -18.9558, lng: 32.6504 };
 
     try {
-      let imageUrls: string[] = [];
-      if (imageFiles.length > 0) {
+      let imageUrls: string[] = imagePreviews;
+      if (!isEditing && imageFiles.length > 0) {
         const formData = new FormData();
         imageFiles.forEach((file) => formData.append("images", file));
         const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
         if (uploadRes.ok) { const d = await uploadRes.json(); imageUrls = d.urls; }
       }
 
-      const res = await fetch("/api/properties", {
-        method: "POST",
+      const res = await fetch(isEditing ? `/api/properties/${editId}` : "/api/properties", {
+        method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
           latitude: coords.lat, longitude: coords.lng,
-          images: imageUrls, userId: session?.user?.id,
+          ...(isEditing ? {} : { images: imageUrls, userId: session?.user?.id }),
         }),
       });
 
@@ -154,10 +230,10 @@ export default function ListPropertyPage() {
         throw new Error(detail);
       }
       setSuccess(true);
-      setTimeout(() => router.push("/properties"), 2500);
+      setTimeout(() => router.push(isEditing ? "/my-listings" : "/properties"), 2500);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
-      setError(`Failed to list property: ${msg}`);
+      setError(`${isEditing ? "Failed to update listing" : "Failed to list property"}: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -212,7 +288,7 @@ export default function ListPropertyPage() {
   };
   const prevStep = () => { setFieldErrors({}); setError(""); setStep((s) => Math.max(s - 1, 1)); };
 
-  if (sessionStatus === "loading") return <div className="flex items-center justify-center py-32"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /></div>;
+  if (sessionStatus === "loading" || loadingExisting) return <div className="flex items-center justify-center py-32"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /></div>;
 
   if (!session) {
     return (
@@ -237,8 +313,8 @@ export default function ListPropertyPage() {
             <CheckCircle2 className="w-10 h-10 text-emerald-400" />
           </div>
         </motion.div>
-        <h2 className="text-2xl font-bold text-zinc-100 mb-2">Property Listed!</h2>
-        <p className="text-zinc-500">Your property has been priced and submitted. Redirecting…</p>
+        <h2 className="text-2xl font-bold text-zinc-100 mb-2">{isEditing ? "Listing Updated!" : "Property Listed!"}</h2>
+        <p className="text-zinc-500">{isEditing ? "Your updates have been saved. Redirecting to your listings…" : "Your property has been priced and submitted. Redirecting…"}</p>
       </div>
     );
   }
@@ -250,7 +326,7 @@ export default function ListPropertyPage() {
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
             <PlusCircle className="w-5 h-5 text-emerald-400" />
           </div>
-          <h1 className="text-2xl font-bold text-zinc-100">List Your Property</h1>
+          <h1 className="text-2xl font-bold text-zinc-100">{isEditing ? "Edit Listing" : "List Your Property"}</h1>
         </div>
         <p className="text-zinc-500 text-sm mt-1 ml-12">The system automatically sets a fair market price using algorithmic pricing — landlords cannot override it.</p>
       </div>
@@ -476,26 +552,45 @@ export default function ListPropertyPage() {
             {step === 5 && (
               <>
                 <h2 className="font-semibold text-zinc-100">Property Photos</h2>
-                <p className="text-xs text-zinc-500">Upload up to 8 photos. Good photos attract better tenants.</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {imagePreviews.map((p, i) => (
-                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-700/50 group">
-                      <img src={p} alt="" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => removeImage(i)}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <X className="w-3 h-3 text-white" />
-                      </button>
+                {isEditing ? (
+                  <>
+                    <p className="text-xs text-zinc-500">Existing photos are shown below. Photo editing is disabled in this screen so you can focus on updating the listing details and pricing.</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {imagePreviews.length > 0 ? imagePreviews.map((p, i) => (
+                        <div key={i} className="aspect-square rounded-xl overflow-hidden border border-zinc-700/50">
+                          <img src={p} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      )) : (
+                        <div className="col-span-4 rounded-xl border border-zinc-800/60 bg-zinc-800/30 p-4 text-sm text-zinc-500">
+                          No photos were uploaded for this listing.
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {imagePreviews.length < 8 && (
-                    <button type="button" onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square rounded-xl border-2 border-dashed border-zinc-700/50 hover:border-emerald-500/50 flex flex-col items-center justify-center gap-1 transition-colors">
-                      <ImagePlus className="w-5 h-5 text-zinc-600" />
-                      <span className="text-[10px] text-zinc-600">Add photo</span>
-                    </button>
-                  )}
-                </div>
-                <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-zinc-500">Upload up to 8 photos. Good photos attract better tenants.</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {imagePreviews.map((p, i) => (
+                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-700/50 group">
+                          <img src={p} alt="" className="w-full h-full object-cover" />
+                          <button type="button" onClick={() => removeImage(i)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X className="w-3 h-3 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                      {imagePreviews.length < 8 && (
+                        <button type="button" onClick={() => fileInputRef.current?.click()}
+                          className="aspect-square rounded-xl border-2 border-dashed border-zinc-700/50 hover:border-emerald-500/50 flex flex-col items-center justify-center gap-1 transition-colors">
+                          <ImagePlus className="w-5 h-5 text-zinc-600" />
+                          <span className="text-[10px] text-zinc-600">Add photo</span>
+                        </button>
+                      )}
+                    </div>
+                    <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
+                  </>
+                )}
               </>
             )}
 
@@ -578,11 +673,19 @@ export default function ListPropertyPage() {
         ) : (
           <button type="button" onClick={handleSubmit} disabled={loading || !prediction}
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-bold transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:pointer-events-none">
-            {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Submitting…</> : <><CheckCircle2 className="w-4 h-4" />Submit Listing</>}
+            {loading ? <><Loader2 className="w-4 h-4 animate-spin" />{isEditing ? "Saving…" : "Submitting…"}</> : <><CheckCircle2 className="w-4 h-4" />{isEditing ? "Save Changes" : "Submit Listing"}</>}
           </button>
         )}
       </div>
       {step === 6 && !prediction && <p className="text-xs text-zinc-600 text-center mt-2">Run price calculation first to submit</p>}
     </div>
+  );
+}
+
+export default function ListPropertyPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-32"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /></div>}>
+      <ListPropertyForm />
+    </Suspense>
   );
 }
